@@ -1,9 +1,9 @@
 window.onload = function() {
-	document.getElementById("pixi-container").style.width = "100vw";
-	document.getElementById("pixi-container").style.height = "100vh";
-	document.getElementById("pixi-container").style.position = "relative";
-	document.getElementById("pixi-container").style.top = "0";
-	document.getElementById("pixi-container").style.left = "0";
+	// document.getElementById("pixi-container").style.width = "100vw";
+	// document.getElementById("pixi-container").style.height = "100vh";
+	// document.getElementById("pixi-container").style.position = "absolute";
+	// document.getElementById("pixi-container").style.top = "0";
+	// document.getElementById("pixi-container").style.left = "0";
 
 	//----------------------------------- pixi start
 
