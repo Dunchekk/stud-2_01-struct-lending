@@ -1,114 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <!-- <link rel="stylesheet" href="style.css"> -->
+    <link rel="stylesheet" href="style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.3/pixi.min.js"></script>
-    <!-- <script src="index.js"></script> -->
-         <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.3/pixi.min.js"></script> -->
-        <script>
-        window.onload = function() {
-            
-            document.getElementById('pixi-container').style.width = '100vw'
-            document.getElementById('pixi-container').style.height = '100vh'
-            document.getElementById('pixi-container').style.position = 'fixed'
-            document.getElementById('pixi-container').style.top = '0'
-            document.getElementById('pixi-container').style.left = '0'
-
-            const container = document.getElementById('pixi-container');
-            const rect = container.getBoundingClientRect(); 
-            
-        // 1. Создаём приложение
-        const app = new PIXI.Application({
-            width: window.innerWidth,
-            height: window.innerHeight,
-            backgroundColor: 0x1e1e1e,
-            resizeTo: window
-        });
-
-        document.getElementById('pixi-container').appendChild(app.view);
-
-        // 2. Загружаем текстуру (любой CORS-friendly PNG)
-        const texture = PIXI.Texture.from('https://i.imgur.com/IaUrttj.png'); // стандартный bunny.png на Imgur без ограничений
-        const bunny = new PIXI.Sprite(texture);
-
-
-        // фон
-        const bg = new PIXI.Graphics();
-        bg.beginFill(0x00ffff);
-        bg.drawRect(0, 0, app.screen.width, app.screen.height);
-        bg.endFill();
-        app.stage.addChild(bg);
-
-        // 3. Настраиваем спрайт
-        bunny.anchor.set(0.5);
-        bunny.x = app.screen.width / 2;
-        bunny.y = app.screen.height / 2;
-        bunny.scale.set(2);
-        // bunny.blendMode = 'exclusion';
-
-        // bunny.blendMode = PIXI.BLEND_MODES.DARKEN;
-        bunny.blendMode = PIXI.BLEND_MODES.MULTIPLY;
-
-
-        app.stage.addChild(bunny);
-
-        // 4. Простая анимация вращения и “пружинки”
-        let t = 0;
-        app.ticker.add((delta) => {
-            bunny.rotation += 0.03 * delta;
-            t += 0.03;
-            bunny.y = app.screen.height / 2 + Math.sin(t) * 40;
-        });
-
-        // 5. Обновляем при ресайзе
-        window.addEventListener('resize', () => {
-            bunny.x = app.screen.width / 2;
-            bunny.y = app.screen.height / 2;
-        });
-        document.body.style.overflow = "hidden";
-        };
-        // console.log(PIXI.BLEND_MODES[11]);
-        </script>
-
-
-        <style>
-        /* Скрыть вертикальный и горизонтальный скроллбары во всех браузерах */
-        body {
-        scrollbar-width: none;       /* Firefox */
-        -ms-overflow-style: none;    /* IE/Edge */
-        overflow: -moz-scrollbars-none;
-        }
-        body::-webkit-scrollbar {
-        display: none;               /* Chrome/Safari/Opera */
-        }
-        /*#pixi-container {*/
-        /*position: fixed;     */
-        /*  top: 0;*/
-        /*  left: 0;*/
-        /*  width: 100vw;*/
-        /*  height: 100vh;*/
-        /*  margin: 0;*/
-        /*padding: 0;        */
-        /*}*/
-        canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-        }
-        .pixi-wrapper {
-            height: 100vh;
-            width: 100vw;
-        }
-        </style>
-</head>
-<body>
-
+    <script src="index.js"></script>
+  </head>
+  <body>
     <div id="pixi-wrapper">
-    <div id="pixi-container" style="width:100vw; height:100vh;"></div>
+      <div id="pixi-container" style="width: 100vw; height: 100vh"></div>
     </div>
-
-</body>
+  </body>
 </html>
