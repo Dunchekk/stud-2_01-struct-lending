@@ -10,3 +10,4 @@ yarn-error.log
 /dev_build/*.jpeg
 /dev_build/*.gif
 /dev_build/*.svg
+eslint.config.mjs

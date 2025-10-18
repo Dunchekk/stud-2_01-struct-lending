@@ -1,12 +1,15 @@
 /* Скрыть вертикальный и горизонтальный скроллбары во всех браузерах */
 body {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-  overflow: -moz-scrollbars-none;
+	scrollbar-width: none; /* Firefox */
+	-ms-overflow-style: none; /* IE/Edge */
+	overflow: -moz-scrollbars-none;
+	margin: 0;
+	overflow: hidden;
 }
 body::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Opera */
+	display: none; /* Chrome/Safari/Opera */
 }
+
 /*#pixi-container {*/
 /*position: fixed;     */
 /*  top: 0;*/
@@ -16,13 +19,91 @@ body::-webkit-scrollbar {
 /*  margin: 0;*/
 /*padding: 0;        */
 /*}*/
+
+/* all archi boxes */
+
+.pixi-wrapper {
+	height: 100vh;
+	width: 100vw;
+	position: relative;
+	top: 0;
+	left: 0;
+	overflow: hidden;
+}
+
+#gif {
+	height: 120vw;
+	position: absolute;
+	opacity: 70%;
+}
+
+#pixi-container-waves-blur {
+	height: 100vh;
+	width: 100vw;
+	position: absolute;
+	background: red;
+	opacity: 20%;
+	top: 0;
+	left: 0;
+}
+
+#main-field-wrapper {
+	height: 100vh;
+	width: 100vw;
+	position: absolute;
+	top: 0;
+	left: 0;
+	/* background: gray; */
+	/* opacity: 0; */
+	overflow: scroll;
+}
+
+#main-field {
+	width: 300vw;
+	height: 300vw;
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+#pixi-container-images {
+	display: none;
+}
+
+#fix-cover-elements {
+	display: none;
+}
+
+/* into main field */
+
+#test1 {
+	width: 30px;
+	height: 30px;
+	position: absolute;
+	top: 10vw;
+	left: 20vw;
+	background: gray;
+}
+#test2 {
+	width: 30vw;
+	height: 30vw;
+	position: absolute;
+	background: gray;
+	top: 10vw;
+	left: 120vw;
+}
+#test3 {
+	width: 30vw;
+	height: 30vw;
+	position: absolute;
+	background: gray;
+	top: 10vw;
+	left: 220vw;
+}
+
+/* 
 canvas {
   display: block;
   width: 100%;
   height: 100%;
-}
-.pixi-wrapper {
-  height: 100vh;
-  width: 100vw;
-  position: relative;
-}
+} */
