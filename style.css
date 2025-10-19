@@ -34,7 +34,8 @@ body::-webkit-scrollbar {
 #gif {
   height: 120vw;
   position: absolute;
-  /* opacity: 70%; */
+  opacity: 70%;
+  /* background: red; */
 }
 
 #pixi-container-waves-blur {
