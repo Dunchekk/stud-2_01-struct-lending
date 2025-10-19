@@ -22,7 +22,7 @@ window.onload = function() {
 	//--------------------------------------- pixi ----------------------------------> video upl
 
   // === Загрузка видео в Pixi ===
-  const videoSprite = PIXI.Sprite.from("./imgs/vod.webm");
+  const videoSprite = PIXI.Sprite.from("./imgs/vod.webm"); 
 
   // Получаем HTMLVideoElement, который Pixi создал под капотом
   const videoEl = videoSprite.texture.baseTexture.resource.source;
