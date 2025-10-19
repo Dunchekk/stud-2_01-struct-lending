@@ -49,70 +49,103 @@ window.onload = function() {
 
 	//--------------------------------------- pixi --------------------------------> blur
 
-  // === параметры ===
-const radius = 300;
-const blurSize = 250;
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const lowPerf = window.devicePixelRatio > 2 || app.renderer.width < 800;
 
-// === 1. добавляем оригинальное видео (чёткое) ===
-stageContainer.addChild(videoSprite);
+  if (!isMobile && !lowPerf) {
+  // ... включаем блюр с маской ...
 
-// === 2. создаём размытый слой поверх ===
-const blurVideoSprite = new PIXI.Sprite(videoSprite.texture);
-blurVideoSprite.anchor.set(0.5);
-blurVideoSprite.width = videoSprite.width;
-blurVideoSprite.height = videoSprite.height;
-blurVideoSprite.x = app.renderer.width / 2;
-blurVideoSprite.y = app.renderer.height / 2;
+          
+          // === параметры ===
+        const radius = 300;
+        const blurSize = 250;
 
-const blurFilter = new PIXI.BlurFilter();
-blurFilter.blur = 8;
-blurVideoSprite.filters = [blurFilter];
+        // === 1. добавляем оригинальное видео (чёткое) ===
+        // stageContainer.addChild(videoSprite);
 
-// добавляем поверх оригинала
-stageContainer.addChild(blurVideoSprite);
+        // === 2. создаём размытый слой поверх ===
+        const blurVideoSprite = new PIXI.Sprite(videoSprite.texture);
+        blurVideoSprite.anchor.set(0.5);
+        blurVideoSprite.width = videoSprite.width;
+        blurVideoSprite.height = videoSprite.height;
+        blurVideoSprite.x = app.renderer.width / 2;
+        blurVideoSprite.y = app.renderer.height / 2;
 
-// === 3. создаём МАСКУ, которая скрывает блюр в центре ===
-const circle = new PIXI.Graphics();
+        const blurFilter = new PIXI.BlurFilter();
+        blurFilter.blur = 8;
+        blurVideoSprite.filters = [blurFilter];
 
-// шаг 1: рисуем сплошной белый прямоугольник — вся область видна
-const pad = Math.max(app.renderer.width, app.renderer.height) * 2;
-circle.beginFill(0xffffff);
-circle.drawRect(-pad / 2, -pad / 2, pad, pad);
-circle.endFill();
+        // добавляем поверх оригинала
+        stageContainer.addChild(blurVideoSprite);
 
-// шаг 2: вырезаем в центре мягкий круг (дырку)
-circle.beginHole();
-circle.drawCircle(0, 0, radius);
-circle.endHole();
+        // === 3. создаём МАСКУ, которая скрывает блюр в центре ===
+        const circle = new PIXI.Graphics();
 
-// размываем края дырки, чтобы переход был плавный
-circle.filters = [new PIXI.BlurFilter(blurSize)];
+        // шаг 1: рисуем сплошной белый прямоугольник — вся область видна
+        const pad = Math.max(app.renderer.width, app.renderer.height) * 2;
+        circle.beginFill(0xffffff);
+        circle.drawRect(-pad / 2, -pad / 2, pad, pad);
+        circle.endFill();
 
-// генерируем текстуру маски
-const bounds = new PIXI.Rectangle(-pad / 2, -pad / 2, pad, pad);
+        // шаг 2: вырезаем в центре мягкий круг (дырку)
+        circle.beginHole();
+        circle.drawCircle(0, 0, radius);
+        circle.endHole();
 
-const circleTexture = app.renderer.generateTexture(circle, {
-  scaleMode: PIXI.SCALE_MODES.LINEAR,
-  resolution: 1,
-  region: bounds,
-});
+        // размываем края дырки, чтобы переход был плавный
+        circle.filters = [new PIXI.BlurFilter(blurSize)];
 
-// создаём спрайт маски
-const focus = new PIXI.Sprite(circleTexture);
-focus.anchor.set(0.5);              // центр спрайта = центр дырки
-app.stage.addChild(focus);
+        // генерируем текстуру маски
+        const bounds = new PIXI.Rectangle(-pad / 2, -pad / 2, pad, pad);
 
-// применяем маску к размытым слоям — центр теперь «дырка»
-blurVideoSprite.mask = focus;
+        const circleTexture = app.renderer.generateTexture(circle, {
+          scaleMode: PIXI.SCALE_MODES.LINEAR,
+          resolution: 1,
+          region: bounds,
+        });
 
-// === 4. движение маски за курсором ===
-app.stage.eventMode = 'static';
-app.stage.hitArea = app.screen;
-app.stage.on('pointermove', (e) => {
-  const pos = e.global;
-  focus.position.set(pos.x, pos.y);
-});
+        // создаём спрайт маски
+        const focus = new PIXI.Sprite(circleTexture);
+        focus.anchor.set(0.5);              // центр спрайта = центр дырки
+        app.stage.addChild(focus);
 
+        // применяем маску к размытым слоям — центр теперь «дырка»
+        blurVideoSprite.mask = focus;
+
+        // === 4. движение маски за курсором ===
+        app.stage.eventMode = 'static';
+        app.stage.hitArea = app.screen;
+        app.stage.on('pointermove', (e) => {
+          const pos = e.global;
+          focus.position.set(pos.x, pos.y);
+        });
+
+          window.addEventListener("resize", () => {
+            const pad = Math.max(app.renderer.width, app.renderer.height) * 2;
+            circle.clear();
+            circle.beginFill(0xffffff);
+            circle.drawRect(-pad / 2, -pad / 2, pad, pad);
+            circle.endFill();
+            circle.beginHole();
+            circle.drawCircle(0, 0, radius);
+            circle.endHole();
+            circle.filters = [new PIXI.BlurFilter(blurSize)];
+
+            const bounds = new PIXI.Rectangle(-pad / 2, -pad / 2, pad, pad);
+            const newTexture = app.renderer.generateTexture(circle, {
+              scaleMode: PIXI.SCALE_MODES.LINEAR,
+              resolution: 1,
+              region: bounds,
+            });
+            focus.texture = newTexture;
+
+            blurVideoSprite.width = videoSprite.width;
+            blurVideoSprite.height = videoSprite.height;
+            blurVideoSprite.x = app.renderer.width / 2;
+            blurVideoSprite.y = app.renderer.height / 2;
+        });
+
+  }
 	//--------------------------------------- pixi --------------------------------> noisy textures
   
 
@@ -169,31 +202,21 @@ app.stage.on('pointermove', (e) => {
   // === Реакция на resize ===
   window.addEventListener("resize", () => {
 
+    window.addEventListener('orientationchange', () => {
+      app.renderer.resize(containerEl.clientWidth, containerEl.clientHeight);
+    });
+
     videoSprite.width = app.renderer.width * 1.8;
     videoSprite.height = app.renderer.height * 1.8;
     videoSprite.x = app.renderer.width / 2;
     videoSprite.y = app.renderer.height / 2;
 
-    // обновляем маску при изменении размеров окна
-  {
-    const pad = Math.max(app.renderer.width, app.renderer.height) * 2;
-    circle.clear();
-    circle.beginFill(0xffffff);
-    circle.drawRect(-pad / 2, -pad / 2, pad, pad);
-    circle.endFill();
-    circle.beginHole();
-    circle.drawCircle(0, 0, radius);
-    circle.endHole();
-    circle.filters = [new PIXI.BlurFilter(blurSize)];
+    
 
-    const bounds = new PIXI.Rectangle(-pad / 2, -pad / 2, pad, pad);
-    const newTexture = app.renderer.generateTexture(circle, {
-      scaleMode: PIXI.SCALE_MODES.LINEAR,
-      resolution: 1,
-      region: bounds,
-    });
-    focus.texture = newTexture;
-  }
+    noiseSprite.tileScale.set(
+      app.renderer.width / noiseSprite.texture.width,
+      app.renderer.height / noiseSprite.texture.height,
+    );
 
     displacementSprite.width = app.renderer.width * 2;
     displacementSprite.height = app.renderer.height * 2;
@@ -202,6 +225,8 @@ app.stage.on('pointermove', (e) => {
 
     noiseSprite.width = app.renderer.width;
     noiseSprite.height = app.renderer.height;
+
+
   });
 
 	//--------------------------------------- vanilla --------------------------------> add stuff
