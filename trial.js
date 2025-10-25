@@ -243,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
     app.renderer.width,
     app.renderer.height
   );
-  noiseSprite.alpha = 0.3; // лёгкая прозрачность, чтобы “мерцало”
+  noiseSprite.alpha = 0.2; // лёгкая прозрачность, чтобы “мерцало”
   stageContainer.addChild(noiseSprite);
 
   // === Фильтр смещения ===
@@ -302,195 +302,182 @@ document.addEventListener("DOMContentLoaded", () => {
   // === (чтобы тильда не страдала хренью) ===
 
   document.body.style.overflow = "hidden";
+});
 
-  //-----------------------------------------------------------------------------
+async function initField() {
+  // 1️⃣ Загружаем JSON
+  const response = await fetch(
+    "https://dunchekk.github.io/stud-2_01-struct-lending/data.json"
+  );
+  const data = await response.json(); // теперь это массив из 39 объектов
 
-  async function initField() {
-    // 1️⃣ Загружаем JSON
-    const response = await fetch(
-      "https://dunchekk.github.io/stud-2_01-struct-lending/data.json"
+  // 2️⃣ Настраиваем размеры поля
+  const SCREEN_W = window.innerWidth;
+  const SCREEN_H = window.innerHeight;
+  const SCALE_FACTOR = 9;
+  const FIELD_W = SCREEN_W * SCALE_FACTOR;
+  const FIELD_H = SCREEN_H * SCALE_FACTOR;
+
+  // минимальный отступ между краем нода и краем поля
+  const EDGE_MARGIN_VW = 5; // поменяйте при желании
+  const EDGE_MARGIN = window.innerWidth * (EDGE_MARGIN_VW / 100);
+
+  const field = document.getElementById("main-field");
+  field.style.width = FIELD_W + "px";
+  field.style.height = FIELD_H + "px";
+
+  // 3️⃣ Константы генерации координат
+  // 3️⃣ Константы генерации координат: минимум 120vw между центрами
+  // 3️⃣ Константы генерации координат: r_min=120vw, r_max=200vw
+  // 3️⃣ Константы генерации координат (рекурсия по N, попытки — итерацией)
+  // 3️⃣ Константы генерации координат (равномерный разлёт по полю)
+  const N = data.length;
+
+  const MIN_DISTANCE_VW = 10; // минимум между центрами
+  const MAX_DISTANCE_VW = 80; // потолок «удалённости» (≈1.5×MIN → 110–140)
+  const MIN_DISTANCE = SCREEN_W * (MIN_DISTANCE_VW / 100);
+  const MAX_DISTANCE = SCREEN_W * (MAX_DISTANCE_VW / 100);
+
+  const PADDING_X = Math.max(EDGE_MARGIN, 10);
+  const PADDING_Y = Math.max(EDGE_MARGIN, 10);
+  const EFF_W = Math.max(1, FIELD_W - 2 * PADDING_X);
+  const EFF_H = Math.max(1, FIELD_H - 2 * PADDING_Y);
+
+  const positions = [];
+
+  // === Кандидаты по сетке с джиттером ===
+  // === Жёсткая сетка: ровно N ячеек, по 1 ноду в ячейке ===
+  // === Плотная сетка: ячеек больше, чем N; берём N равномерных ячеек ===
+  (function buildGridOversampled() {
+    const GRID_OVERSAMPLE = 1.0; // 2× больше ячеек → клетки ~в √2 раз меньше
+    const targetCells = Math.ceil(N * GRID_OVERSAMPLE);
+
+    // подбираем rows/cols под аспект рабочей области
+    const ar = EFF_W / EFF_H;
+    let rows = Math.max(1, Math.round(Math.sqrt(targetCells / ar)));
+    let cols = Math.max(1, Math.ceil(targetCells / rows));
+    while (rows * cols < targetCells) {
+      const addColsWaste = (cols + 1) * rows - targetCells;
+      const addRowsWaste = cols * (rows + 1) - targetCells;
+      if (addColsWaste <= addRowsWaste) cols++;
+      else rows++;
+    }
+
+    const cellW = EFF_W / cols;
+    const cellH = EFF_H / rows;
+
+    // внутренняя область ячейки (чтобы не липло к границам)
+    const inset = 0.3; // 12% с каждой стороны
+    const jitter = 0.6; // случайный сдвиг внутри внутреннего прямоугольника
+
+    // соберём все ячейки как кандидатов
+    const cells = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x0 = PADDING_X + c * cellW;
+        const y0 = PADDING_Y + r * cellH;
+
+        const ix0 = x0 + cellW * inset;
+        const iy0 = y0 + cellH * inset;
+        const iw = cellW * (1 - 2 * inset);
+        const ih = cellH * (1 - 2 * inset);
+
+        const x = ix0 + iw * (0.5 + (Math.random() - 0.5) * 2 * jitter);
+        const y = iy0 + ih * (0.5 + (Math.random() - 0.5) * 2 * jitter);
+
+        cells.push({
+          x: Math.min(PADDING_X + EFF_W, Math.max(PADDING_X, x)),
+          y: Math.min(PADDING_Y + EFF_H, Math.max(PADDING_Y, y)),
+        });
+      }
+    }
+
+    // перемешиваем и берём первые N ячеек — просто и достаточно ровно при oversample > 1
+    for (let i = cells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cells[i], cells[j]] = [cells[j], cells[i]];
+    }
+
+    positions.length = 0;
+    for (let i = 0; i < N && i < cells.length; i++) {
+      positions.push(cells[i]);
+    }
+  })();
+
+  if (positions.length < N) {
+    console.warn(
+      `Разместили ${positions.length}/${N} при min=${MIN_DISTANCE_VW}vw, max=${MAX_DISTANCE_VW}vw. Увеличьте SCALE_FACTOR или скорректируйте min/max.`
     );
-    const data = await response.json(); // теперь это массив из 39 объектов
+  }
 
-    // 2️⃣ Настраиваем размеры поля
-    const SCREEN_W = window.innerWidth;
-    const SCREEN_H = window.innerHeight;
-    const SCALE_FACTOR = 20;
-    const FIELD_W = SCREEN_W * SCALE_FACTOR;
-    const FIELD_H = SCREEN_H * SCALE_FACTOR;
-
-    // минимальный отступ между краем нода и краем поля
-    const EDGE_MARGIN_VW = 2; // поменяйте при желании
-    const EDGE_MARGIN = window.innerWidth * (EDGE_MARGIN_VW / 100);
-
-    const field = document.getElementById("main-field");
-    field.style.width = FIELD_W + "px";
-    field.style.height = FIELD_H + "px";
-
-    // 3️⃣ Константы генерации координат
-    // 3️⃣ Константы генерации координат: минимум 120vw между центрами
-    // 3️⃣ Константы генерации координат: r_min=120vw, r_max=200vw
-    // 3️⃣ Константы генерации координат (рекурсия по N, попытки — итерацией)
-    const N = data.length;
-
-    const MIN_DISTANCE_VW = 80;
-    const MAX_DISTANCE_VW = 180;
-
-    const MIN_DISTANCE = SCREEN_W * (MIN_DISTANCE_VW / 100);
-    const MAX_DISTANCE = SCREEN_W * (MAX_DISTANCE_VW / 100);
-
-    const PADDING_X = Math.min(SCREEN_W * 0.05, FIELD_W * 0.05);
-    const PADDING_Y = Math.min(SCREEN_H * 0.05, FIELD_H * 0.05);
-
-    const EFF_W = Math.max(1, FIELD_W - 2 * PADDING_X);
-    const EFF_H = Math.max(1, FIELD_H - 2 * PADDING_Y);
-
-    const positions = [];
-
-    function nearestDist(x, y) {
-      let m = Infinity;
-      for (const pos of positions) {
-        const dx = pos.x - x;
-        const dy = pos.y - y;
-        const d = Math.hypot(dx, dy);
-        if (d < m) m = d;
-      }
-      return m;
+  // перемешивание и нормирование
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
     }
-    function isFarEnough(x, y, dist) {
-      const d2 = dist * dist;
-      for (const pos of positions) {
-        const dx = pos.x - x;
-        const dy = pos.y - y;
-        if (dx * dx + dy * dy < d2) return false;
-      }
-      return true;
-    }
+  }
+  shuffle(positions);
 
-    function randomCandidate() {
-      const x = PADDING_X + Math.random() * EFF_W;
-      const y = PADDING_Y + Math.random() * EFF_H;
-      return { x, y };
-    }
+  const normPositions = positions.map((p) => ({
+    nx: p.x / FIELD_W,
+    ny: p.y / FIELD_H,
+  }));
 
-    // Пытаемся найти позицию итеративно, с релаксацией дистанции
-    function generatePositionFor(dist, maxAttempts = 4000) {
-      let curDist = dist;
-      const floorDist = dist * 0.6;
+  const blocks = []; // сюда положим созданные ноды по индексу i
 
-      for (let a = 0; a < maxAttempts; a++) {
-        const c = randomCandidate();
+  function clampCenterToField(block, centerX, centerY) {
+    // Важно: блок должен быть в DOM, чтобы размеры были валидны
+    const rect = block.getBoundingClientRect();
+    const halfW = rect.width / 2;
+    const halfH = rect.height / 2;
 
-        // минимум: не ближе curDist к уже поставленным
-        if (!isFarEnough(c.x, c.y, curDist)) {
-          // релаксация каждые 500 неудачных попыток
-          if (a > 0 && a % 500 === 0) {
-            curDist = Math.max(floorDist, curDist * 0.97);
-          }
-          continue;
-        }
+    // на случай слишком крупных блоков: не даём уйти в NaN
+    const minX = Math.min(
+      FIELD_W - EDGE_MARGIN - halfW,
+      Math.max(EDGE_MARGIN + halfW, 0)
+    );
+    const maxX = Math.max(
+      EDGE_MARGIN + halfW,
+      Math.min(FIELD_W - EDGE_MARGIN - halfW, FIELD_W)
+    );
+    const minY = Math.min(
+      FIELD_H - EDGE_MARGIN - halfH,
+      Math.max(EDGE_MARGIN + halfH, 0)
+    );
+    const maxY = Math.max(
+      EDGE_MARGIN + halfH,
+      Math.min(FIELD_H - EDGE_MARGIN - halfH, FIELD_H)
+    );
 
-        // максимум: не дальше ближайшего, чем MAX (кроме первого)
-        if (positions.length > 0) {
-          const nd = nearestDist(c.x, c.y);
-          if (nd > MAX_DISTANCE) {
-            if (a > 0 && a % 500 === 0) {
-              curDist = Math.max(floorDist, curDist * 0.97);
-            }
-            continue;
-          }
-        }
+    const clampedX = Math.min(maxX, Math.max(minX, centerX));
+    const clampedY = Math.min(maxY, Math.max(minY, centerY));
 
-        // прошел обе проверки
-        return c;
-      }
+    block.style.left = clampedX + "px";
+    block.style.top = clampedY + "px";
+  }
 
-      return null;
-    }
+  // -----------------------------render functions start -----------------------------
 
-    // Рекурсия только по количеству точек (≤ 39) — безопасно
-    function placeAll(i = 0) {
-      if (i >= N) return;
-      const p = generatePositionFor(MIN_DISTANCE);
-      if (p) {
-        positions.push(p);
-      } else {
-        console.warn(
-          `Не удалось поставить элемент #${i} при min=${MIN_DISTANCE_VW}vw. Увеличьте SCALE_FACTOR или снизьте min.`
-        );
-        // можно: return; // или продолжить попытаться ставить дальше
-      }
-      placeAll(i + 1);
-    }
+  // --- text render
 
-    placeAll();
+  function renderTextElement(data, i) {
+    const block = document.createElement("div");
+    block.classList.add("text-el");
+    block.classList.add("map-item");
 
-    // Перемешиваем и нормализуем
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-    }
-    shuffle(positions);
+    // можно позже задать координаты block.style.left/top из функции рандомного позиционирования
 
-    const normPositions = positions.map((p) => ({
-      nx: p.x / FIELD_W,
-      ny: p.y / FIELD_H,
-    }));
+    // позиционирование
+    block.style.position = "absolute";
+    block.style.left = positions[i].x + "px";
+    block.style.top = positions[i].y + "px";
+    block.style.transform = "translate(-50%, -50%)";
+    block.dataset.id = data.id;
+    block.dataset.name = data.name;
+    block.dataset.link = "—";
 
-    const blocks = []; // сюда положим созданные ноды по индексу i
-
-    function clampCenterToField(block, centerX, centerY) {
-      // Важно: блок должен быть в DOM, чтобы размеры были валидны
-      const rect = block.getBoundingClientRect();
-      const halfW = rect.width / 2;
-      const halfH = rect.height / 2;
-
-      // на случай слишком крупных блоков: не даём уйти в NaN
-      const minX = Math.min(
-        FIELD_W - EDGE_MARGIN - halfW,
-        Math.max(EDGE_MARGIN + halfW, 0)
-      );
-      const maxX = Math.max(
-        EDGE_MARGIN + halfW,
-        Math.min(FIELD_W - EDGE_MARGIN - halfW, FIELD_W)
-      );
-      const minY = Math.min(
-        FIELD_H - EDGE_MARGIN - halfH,
-        Math.max(EDGE_MARGIN + halfH, 0)
-      );
-      const maxY = Math.max(
-        EDGE_MARGIN + halfH,
-        Math.min(FIELD_H - EDGE_MARGIN - halfH, FIELD_H)
-      );
-
-      const clampedX = Math.min(maxX, Math.max(minX, centerX));
-      const clampedY = Math.min(maxY, Math.max(minY, centerY));
-
-      block.style.left = clampedX + "px";
-      block.style.top = clampedY + "px";
-    }
-
-    // -----------------------------render functions start -----------------------------
-
-    // --- text render
-
-    function renderTextElement(data, i) {
-      const block = document.createElement("div");
-      block.classList.add("text-el");
-      block.classList.add("map-item");
-
-      // можно позже задать координаты block.style.left/top из функции рандомного позиционирования
-
-      // позиционирование
-      block.style.position = "absolute";
-      block.style.left = positions[i].x + "px";
-      block.style.top = positions[i].y + "px";
-      block.style.transform = "translate(-50%, -50%)";
-      block.dataset.id = data.id;
-
-      block.innerHTML = `
+    block.innerHTML = `
     <div class="meta-top">
       <span class="title">${data.name}</span>
     </div>
@@ -505,273 +492,444 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   `;
 
-      let current = 0;
-      const paragraphs = block.querySelectorAll("p");
-      const counter = block.querySelector(".counter");
+    let current = 0;
+    const paragraphs = block.querySelectorAll("p");
+    const counter = block.querySelector(".counter");
 
-      let switching = false;
+    let switching = false;
 
-      const SWITCH_COOLDOWN = 1000; // пауза между листаниями в мс (2с)
-      function withCooldown(fn) {
-        if (switching) return;
-        const didSwitch = fn();
-        if (didSwitch) {
-          switching = true;
-          setTimeout(() => {
-            switching = false;
-          }, SWITCH_COOLDOWN);
-        }
+    const SWITCH_COOLDOWN = 1000; // пауза между листаниями в мс (2с)
+    function withCooldown(fn) {
+      if (switching) return;
+      const didSwitch = fn();
+      if (didSwitch) {
+        switching = true;
+        setTimeout(() => {
+          switching = false;
+        }, SWITCH_COOLDOWN);
       }
-
-      // Обработчик скролла при наведении
-      block.addEventListener(
-        "wheel",
-        (e) => {
-          e.preventDefault();
-          if (e.deltaY > 0) withCooldown(nextParagraph);
-          else withCooldown(prevParagraph);
-        },
-        { passive: false }
-      );
-
-      // --------------можно также добавить листание свайпом для тач
-      let startY = null;
-      let swipeRecognized = false;
-      const SWIPE_THRESHOLD = 50;
-
-      block.addEventListener(
-        "touchstart",
-        (e) => {
-          startY = e.touches[0].clientY;
-          swipeRecognized = false;
-        },
-        { passive: true }
-      );
-
-      block.addEventListener(
-        "touchmove",
-        (e) => {
-          if (startY == null) return;
-          const dy = e.touches[0].clientY - startY;
-
-          // жест распознан — блокируем прокрутку контейнера
-          if (Math.abs(dy) > SWIPE_THRESHOLD) {
-            swipeRecognized = true;
-            e.preventDefault();
-          }
-        },
-        { passive: false }
-      );
-
-      block.addEventListener("touchend", (e) => {
-        if (startY == null) return;
-        const diff = e.changedTouches[0].clientY - startY;
-
-        if (Math.abs(diff) > SWIPE_THRESHOLD) {
-          if (diff < 0) withCooldown(nextParagraph);
-          if (diff > 0) withCooldown(prevParagraph);
-        }
-
-        startY = null;
-        swipeRecognized = false;
-      });
-
-      //--------------------
-
-      function nextParagraph() {
-        if (current < paragraphs.length - 1) {
-          paragraphs[current].classList.remove("active");
-          paragraphs[current].classList.add("exit");
-          current++;
-          paragraphs[current].classList.add("active");
-          counter.textContent = `${current + 1}/${paragraphs.length}`;
-          setTimeout(() => {
-            paragraphs.forEach((p) => p.classList.remove("exit"));
-          }, 600);
-          return true;
-        }
-        return false;
-      }
-
-      function prevParagraph() {
-        if (current > 0) {
-          paragraphs[current].classList.remove("active");
-          // снять возможные «зависшие» exit
-          paragraphs.forEach((p) => p.classList.remove("exit"));
-          current--;
-          paragraphs[current].classList.add("active");
-          counter.textContent = `${current + 1}/${paragraphs.length}`;
-          return true;
-        }
-        return false;
-      }
-
-      document.getElementById("main-field").appendChild(block);
-      blocks[i] = block;
-      clampCenterToField(block, positions[i].x, positions[i].y);
     }
 
-    // --- pic render
-
-    function renderPictureElement(data, i) {
-      const block = document.createElement("div");
-      block.classList.add("pic-el");
-      block.classList.add("map-item");
-      block.dataset.id = data.id;
-
-      // базовые стили
-      block.style.position = "absolute";
-      // block.style.cursor = "pointer";
-      //   block.style.overflow = 'hidden';
-      block.style.display = "flex";
-      block.style.justifyContent = "center";
-      block.style.alignItems = "center";
-
-      // позиционирование
-      block.style.position = "absolute";
-      block.style.left = positions[i].x + "px";
-      block.style.top = positions[i].y + "px";
-      block.style.transform = "translate(-50%, -50%)";
-
-      // дефолтные размеры, если в данных не задано (можно подправить под задачи)
-      if (
-        !(
-          data.style &&
-          typeof data.style === "object" &&
-          (data.style.width || data.style.height)
-        )
-      ) {
-        block.style.width = "auto";
-        block.style.height = "auto";
-      }
-
-      // индивидуальные стили из JSON, если есть
-      if (data.style && typeof data.style === "object") {
-        Object.assign(block.style, data.style);
-      }
-
-      // выбор: картинка или видео
-      const isVideo =
-        typeof data.url === "string" && /\.(mp4|webm|ogg)$/i.test(data.url);
-      let mediaEl;
-
-      if (isVideo) {
-        const video = document.createElement("video");
-        video.src = data.url;
-        video.muted = true;
-        video.loop = true;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.preload = "metadata";
-        // размеры/кадрирование
-        video.style.width = "100%";
-        video.style.height = "100%";
-        video.style.objectFit = "cover";
-        video.style.transition = "transform 0.6s ease";
-
-        // безопасный запуск (на случай ограничений браузера)
-        video.addEventListener("canplay", () => {
-          video.play().catch(() => {});
-        });
-
-        mediaEl = video;
-      } else {
-        const img = document.createElement("img");
-        img.src = data.url;
-        img.alt = data.name || "";
-        img.decoding = "async";
-        img.loading = "lazy";
-        // размеры/кадрирование
-        img.style.width = "100%";
-        img.style.height = "100%";
-        img.style.objectFit = "cover";
-        img.style.transition = "transform 0.6s ease";
-
-        mediaEl = img;
-      }
-
-      block.appendChild(mediaEl);
-
-      clampCenterToField(block, positions[i].x, positions[i].y);
-
-      // эффекты при наведении (одинаково для img и video)
-      block.addEventListener("mouseenter", () => {
-        mediaEl.style.transform = "scale(1.05)";
-      });
-      block.addEventListener("mouseleave", () => {
-        mediaEl.style.transform = "scale(1)";
-      });
-
-      document.getElementById("main-field").appendChild(block);
-      blocks[i] = block;
-    }
-
-    // -----------------------------render functions end ------------------------------
-
-    function applyLayout(newW, newH) {
-      field.style.width = newW + "px";
-      field.style.height = newH + "px";
-
-      blocks.forEach((el, i) => {
-        if (!el) return;
-        const cx = normPositions[i].nx * newW;
-        const cy = normPositions[i].ny * newH;
-        el.style.left = cx + "px";
-        el.style.top = cy + "px";
-        // переиспользуем хелпенр — он перечитает реальные размеры элемента
-        clampCenterToField(el, cx, cy);
-      });
-    }
-
-    let resizeScheduled = false;
-
-    window.addEventListener("resize", () => {
-      if (resizeScheduled) return;
-      resizeScheduled = true;
-
-      requestAnimationFrame(() => {
-        resizeScheduled = false;
-        const SW = window.innerWidth;
-        const SH = window.innerHeight;
-        const newW = SW * SCALE_FACTOR;
-        const newH = SH * SCALE_FACTOR;
-        applyLayout(newW, newH);
-      });
-    });
-
-    // 4️⃣ Размещаем элементы на поле
-    data.forEach((item, i) => {
-      if (!positions[i]) {
-        console.warn(
-          `Пропуск элемента #${i} (${item.name || item.id}) — нет позиции`
-        );
-        return;
-      }
-      if (item.type === "text-el") renderTextElement(item, i);
-      else renderPictureElement(item, i);
-    });
-
-    // 5️⃣ Отслеживаем, какие элементы видны
-    const items = document.querySelectorAll(".map-item");
-    const visible = new Set();
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const id = entry.target.dataset.id;
-          if (entry.isIntersecting) visible.add(id);
-          else visible.delete(id);
-
-          console.log(`Найдено: ${visible.size}/${items.length}`);
-        });
+    // Обработчик скролла при наведении
+    block.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        if (e.deltaY > 0) withCooldown(nextParagraph);
+        else withCooldown(prevParagraph);
       },
-      { threshold: 0.6 }
+      { passive: false }
     );
 
-    items.forEach((el) => observer.observe(el));
+    // --------------можно также добавить листание свайпом для тач
+    let startY = null;
+    let swipeRecognized = false;
+    const SWIPE_THRESHOLD = 50;
 
-    //--------------------------------движение экрана с main-field
+    block.addEventListener(
+      "touchstart",
+      (e) => {
+        startY = e.touches[0].clientY;
+        swipeRecognized = false;
+      },
+      { passive: true }
+    );
+
+    block.addEventListener(
+      "touchmove",
+      (e) => {
+        if (startY == null) return;
+        const dy = e.touches[0].clientY - startY;
+
+        // жест распознан — блокируем прокрутку контейнера
+        if (Math.abs(dy) > SWIPE_THRESHOLD) {
+          swipeRecognized = true;
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+
+    block.addEventListener("touchend", (e) => {
+      if (startY == null) return;
+      const diff = e.changedTouches[0].clientY - startY;
+
+      if (Math.abs(diff) > SWIPE_THRESHOLD) {
+        if (diff < 0) withCooldown(nextParagraph);
+        if (diff > 0) withCooldown(prevParagraph);
+      }
+
+      startY = null;
+      swipeRecognized = false;
+    });
+
+    //--------------------
+
+    function nextParagraph() {
+      if (current < paragraphs.length - 1) {
+        paragraphs[current].classList.remove("active");
+        paragraphs[current].classList.add("exit");
+        current++;
+        paragraphs[current].classList.add("active");
+        counter.textContent = `${current + 1}/${paragraphs.length}`;
+        setTimeout(() => {
+          paragraphs.forEach((p) => p.classList.remove("exit"));
+        }, 600);
+        return true;
+      }
+      return false;
+    }
+
+    function prevParagraph() {
+      if (current > 0) {
+        paragraphs[current].classList.remove("active");
+        // снять возможные «зависшие» exit
+        paragraphs.forEach((p) => p.classList.remove("exit"));
+        current--;
+        paragraphs[current].classList.add("active");
+        counter.textContent = `${current + 1}/${paragraphs.length}`;
+        return true;
+      }
+      return false;
+    }
+
+    document.getElementById("main-field").appendChild(block);
+    console.log(`rendered ${i}`);
+    blocks[i] = block;
+    clampCenterToField(block, positions[i].x, positions[i].y);
   }
 
+  // --- pic render
+
+  function renderPictureElement(data, i) {
+    const block = document.createElement("div");
+    block.classList.add("pic-el");
+    block.classList.add("map-item");
+    block.dataset.id = data.id;
+    block.dataset.name = data.name;
+    block.dataset.link = (data.link || "—").trim();
+
+    // базовые стили
+    block.style.position = "absolute";
+    // block.style.cursor = "pointer";
+    //   block.style.overflow = 'hidden';
+    block.style.display = "flex";
+    block.style.justifyContent = "center";
+    block.style.alignItems = "center";
+
+    // позиционирование
+    block.style.position = "absolute";
+    block.style.left = positions[i].x + "px";
+    block.style.top = positions[i].y + "px";
+    block.style.transform = "translate(-50%, -50%)";
+
+    // дефолтные размеры, если в данных не задано (можно подправить под задачи)
+    if (
+      !(
+        data.style &&
+        typeof data.style === "object" &&
+        (data.style.width || data.style.height)
+      )
+    ) {
+      block.style.width = "auto";
+      block.style.height = "auto";
+    }
+
+    // индивидуальные стили из JSON, если есть
+    if (data.style && typeof data.style === "object") {
+      Object.assign(block.style, data.style);
+    }
+
+    // выбор: картинка или видео
+    const isVideo =
+      typeof data.url === "string" && /\.(mp4|webm|ogg)$/i.test(data.url);
+    let mediaEl;
+
+    if (isVideo) {
+      const video = document.createElement("video");
+      video.src = data.url;
+      video.muted = true;
+      video.loop = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      // размеры/кадрирование
+      video.style.width = "100%";
+      video.style.height = "100%";
+      video.style.objectFit = "cover";
+      video.style.transition = "transform 0.6s ease";
+
+      // безопасный запуск (на случай ограничений браузера)
+      video.addEventListener("canplay", () => {
+        video.play().catch(() => {});
+      });
+
+      mediaEl = video;
+    } else {
+      const img = document.createElement("img");
+      img.src = data.url;
+      img.alt = data.name || "";
+      img.decoding = "async";
+      img.loading = "lazy";
+      // размеры/кадрирование
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+      img.style.transition = "transform 0.6s ease";
+
+      mediaEl = img;
+    }
+
+    block.appendChild(mediaEl);
+
+    const parent = document.getElementById("main-field");
+    parent.appendChild(block);
+    console.log(`rendered ${i}`);
+    blocks[i] = block;
+
+    const doClamp = () =>
+      clampCenterToField(block, positions[i].x, positions[i].y);
+
+    // кламп сразу и после загрузки медиа — чтобы учесть реальные размеры
+    doClamp();
+
+    if (mediaEl.tagName === "IMG") {
+      if (mediaEl.complete) doClamp();
+      else mediaEl.addEventListener("load", doClamp, { once: true });
+    } else if (mediaEl.tagName === "VIDEO") {
+      if (mediaEl.readyState >= 1) doClamp();
+      else mediaEl.addEventListener("loadedmetadata", doClamp, { once: true });
+    }
+
+    // эффекты при наведении (одинаково для img и video)
+    block.addEventListener("mouseenter", () => {
+      mediaEl.style.transform = "scale(1.05)";
+    });
+    block.addEventListener("mouseleave", () => {
+      mediaEl.style.transform = "scale(1)";
+    });
+
+    document.getElementById("main-field").appendChild(block);
+    console.log(`rendered ${i}`);
+    blocks[i] = block;
+  }
+
+  // -----------------------------render functions end ------------------------------
+
+  function applyLayout(newW, newH) {
+    field.style.width = newW + "px";
+    field.style.height = newH + "px";
+
+    blocks.forEach((el, i) => {
+      if (!el) return;
+      const cx = normPositions[i].nx * newW;
+      const cy = normPositions[i].ny * newH;
+      el.style.left = cx + "px";
+      el.style.top = cy + "px";
+      // переиспользуем хелпенр — он перечитает реальные размеры элемента
+      clampCenterToField(el, cx, cy);
+    });
+  }
+
+  let resizeScheduled = false;
+
+  window.addEventListener("resize", () => {
+    if (resizeScheduled) return;
+    resizeScheduled = true;
+
+    requestAnimationFrame(() => {
+      resizeScheduled = false;
+      const SW = window.innerWidth;
+      const SH = window.innerHeight;
+      const newW = SW * SCALE_FACTOR;
+      const newH = SH * SCALE_FACTOR;
+      applyLayout(newW, newH);
+    });
+  });
+
+  // 4️⃣ Размещаем элементы на поле
+  data.forEach((item, i) => {
+    if (!positions[i]) {
+      console.warn(
+        `Пропуск элемента #${i} (${item.name || item.id}) — нет позиции`
+      );
+      return;
+    }
+    if (item.type === "text-el") renderTextElement(item, i);
+    else renderPictureElement(item, i);
+  });
+
+  // 5️⃣ Отслеживаем видимость и считаем найденные
+  const wrapper = document.getElementById("main-field-wrapper");
+  const items = document.querySelectorAll(".map-item");
+
+  const found = new Set(); // уникальные найденные id
+  const foundSpan = document.getElementById("found-span");
+  const nodeNameSpan = document.getElementById("node-name");
+  const nodeIdSpan = document.getElementById("node-id-span");
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const el = entry.target;
+        const id = el.dataset.id;
+        const nodeLinkEl = document.getElementById("node-link");
+
+        if (!id) return;
+
+        // считаем «найденным» при 50% видимости
+        if (entry.intersectionRatio >= 0.5) {
+          // активный узел (покажем имя/ID наверху)
+          if (nodeNameSpan) nodeNameSpan.textContent = el.dataset.name || "";
+          if (nodeIdSpan) nodeIdSpan.textContent = id;
+
+          // зафиксируем уникальную находку
+          if (!found.has(id)) {
+            found.add(id);
+            if (foundSpan) foundSpan.textContent = String(found.size);
+          }
+          const link = el.dataset.link || "";
+          if (nodeLinkEl) {
+            if (link) {
+              nodeLinkEl.href = link;
+              nodeLinkEl.textContent = link;
+              nodeLinkEl.target = "_blank";
+              nodeLinkEl.rel = "noopener noreferrer";
+              nodeLinkEl.style.pointerEvents = "auto";
+              nodeLinkEl.style.opacity = "1";
+            } else {
+              nodeLinkEl.removeAttribute("href");
+              nodeLinkEl.textContent = "";
+              nodeLinkEl.removeAttribute("target");
+              nodeLinkEl.removeAttribute("rel");
+              nodeLinkEl.style.pointerEvents = "none";
+              nodeLinkEl.style.opacity = "0.6";
+            }
+          }
+        }
+      });
+      // опционально, логим прогресс
+      console.log(`Найдено: ${found.size}/${items.length}`);
+    },
+    {
+      root: wrapper, // важно: скроллит именно wrapper
+      threshold: [0.5], // 50% на экране
+    }
+  );
+
+  items.forEach((el) => observer.observe(el));
+
+  //--------------------------------движение экрана с main-field
+}
+
+document.addEventListener("DOMContentLoaded", () => {
   initField();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const questSpan = document.getElementById("quastions");
+  const layer = document.getElementById("blending-explenation");
+  const containerInv = document.querySelector("html");
+  if (!questSpan || !layer) return;
+
+  layer.style.opacity = "0";
+
+  const HIDE_DELAY_MS = 0; // небольшая задержка перед скрытием
+  let isOpen = false;
+
+  const clearAnims = () => {
+    layer.classList.remove("blend-anim-in", "blend-anim-out");
+    containerInv.classList.remove("pixi-anim-in", "pixi-anim-out");
+  };
+
+  const open = () => {
+    if (isOpen) return;
+    clearAnims();
+    containerInv.style.filter = "invert(0)";
+    layer.classList.remove("blend-hidden"); // сделать видимым для анимации
+    // containerInv.classList.remove("pixi-hidden"); // сделать видимым для анимации
+
+    layer.classList.add("blend-anim-in"); // запустить fade-in
+    containerInv.classList.add("pixi-anim-in");
+
+    layer.addEventListener(
+      "animationend",
+      function h(e) {
+        if (e.animationName !== "blendFadeIn") return;
+        layer.removeEventListener("animationend", h);
+        layer.classList.remove("blend-anim-in"); // очистить класс анимации
+        containerInv.classList.remove("pixi-anim-in");
+        // containerInv.style.filter = "invert(1)";
+
+        layer.classList.add("blend-open"); // зафиксировать видимое состояние
+        containerInv.style.filter = "invert(1)";
+
+        layer.style.opacity = "1";
+        isOpen = true;
+      },
+      { once: true }
+    );
+
+    // containerInv.addEventListener(
+    //   "animationend",
+    //   function h(e) {
+    //     if (e.animationName !== "blendFadeIn") return;
+    //     containerInv.removeEventListener("animationend", h);
+    //     // containerInv.classList.remove("pixi-anim-in"); // очистить класс анимации
+    //     containerInv.style.filter = "invert(1)";
+
+    //     containerInv.classList.add("pixi-open"); // зафиксировать видимое состояние
+    //     // containerInv.style.opacity = "1";
+    //     isOpen = true;
+    //   },
+    //   { once: true }
+    // );
+  };
+
+  const close = (delay = HIDE_DELAY_MS) => {
+    if (!isOpen) return;
+    clearAnims();
+    const doClose = () => {
+      layer.classList.add("blend-anim-out"); // запустить fade-out (анимация перекроет opacity:1)
+      containerInv.classList.add("pixi-anim-out"); // запустить fade-out (анимация перекроет opacity:1)
+
+      layer.addEventListener(
+        "animationend",
+        function h(e) {
+          if (e.animationName !== "blendFadeOut") return;
+          layer.removeEventListener("animationend", h);
+          layer.classList.remove("blend-anim-out");
+          containerInv.classList.remove("pixi-anim-out");
+
+          layer.classList.remove("blend-open"); // убрать видимое состояние
+          layer.classList.add("blend-hidden"); // скрыть полностью
+          layer.style.opacity = "0";
+          containerInv.style.filter = "";
+          isOpen = false;
+        },
+        { once: true }
+      );
+      //   containerInv.addEventListener(
+      //     "animationend",
+      //     function h(e) {
+      //       if (e.animationName !== "blendFadeOut") return;
+      //       containerInv.removeEventListener("animationend", h);
+      //       containerInv.classList.remove("pixi-anim-out");
+      //       containerInv.classList.remove("pixi-open"); // убрать видимое состояние
+      //       containerInv.classList.add("pixi-hidden"); // скрыть полностью
+      //       containerInv.style.filter = "invert(0)";
+
+      //       isOpen = false;
+      //     },
+      //     { once: true }
+      //   );
+    };
+    delay > 0 ? setTimeout(doClose, delay) : doClose();
+  };
+
+  // Включаем/выключаем строго по клику на “???”
+  questSpan.addEventListener("click", (e) => {
+    e.preventDefault();
+    isOpen ? close() : open();
+  });
 });
