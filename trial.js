@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
     antialias: true,
   });
   containerEl.appendChild(app.view);
+  app.ticker.maxFPS = 45; // ограничить FPS
 
   // === Контейнер для эффекта ===
   const stageContainer = new PIXI.Container();
@@ -47,11 +48,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Растягиваем чуть больше экрана (чтобы можно было смещать и не было краёв)
-  videoSprite.width = app.renderer.width * 1.8;
-  videoSprite.height = app.renderer.height * 1.8;
+  videoSprite.width = app.screen.width * 1.8;
+  videoSprite.height = app.screen.height * 1.8;
   videoSprite.anchor.set(0.5);
-  videoSprite.x = app.renderer.width / 2;
-  videoSprite.y = app.renderer.height / 2;
+  videoSprite.x = app.screen.width / 2;
+  videoSprite.y = app.screen.height / 2;
 
   // Добавляем В САМОЕ НАЧАЛО stageContainer (до текстур)
   stageContainer.addChildAt(videoSprite, 0);
@@ -59,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
   //--------------------------------------- pixi --------------------------------> blur
 
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const lowPerf = window.devicePixelRatio > 2 || app.renderer.width < 800;
+  const lowPerf = window.devicePixelRatio > 2 || app.screen.width < 800;
 
   if (!isMobile && !lowPerf) {
     // ... включаем блюр с маской ...
@@ -76,11 +77,11 @@ document.addEventListener("DOMContentLoaded", () => {
     blurVideoSprite.anchor.set(0.5);
     blurVideoSprite.width = videoSprite.width;
     blurVideoSprite.height = videoSprite.height;
-    blurVideoSprite.x = app.renderer.width / 2;
-    blurVideoSprite.y = app.renderer.height / 2;
+    blurVideoSprite.x = app.screen.width / 2;
+    blurVideoSprite.y = app.screen.height / 2;
 
     const blurFilter = new PIXI.BlurFilter();
-    blurFilter.blur = 8;
+    blurFilter.blur = 6;
     blurVideoSprite.filters = [blurFilter];
 
     // добавляем поверх оригинала
@@ -90,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const circle = new PIXI.Graphics();
 
     // шаг 1: рисуем сплошной белый прямоугольник — вся область видна
-    const pad = Math.max(app.renderer.width, app.renderer.height) * 2;
+    const pad = Math.max(app.screen.width, app.screen.height) * 2;
     circle.beginFill(0xffffff);
     circle.drawRect(-pad / 2, -pad / 2, pad, pad);
     circle.endFill();
@@ -129,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     window.addEventListener("resize", () => {
-      const pad = Math.max(app.renderer.width, app.renderer.height) * 2;
+      const pad = Math.max(app.screen.width, app.screen.height) * 2;
       circle.clear();
       circle.beginFill(0xffffff);
       circle.drawRect(-pad / 2, -pad / 2, pad, pad);
@@ -149,8 +150,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       blurVideoSprite.width = videoSprite.width;
       blurVideoSprite.height = videoSprite.height;
-      blurVideoSprite.x = app.renderer.width / 2;
-      blurVideoSprite.y = app.renderer.height / 2;
+      blurVideoSprite.x = app.screen.width / 2;
+      blurVideoSprite.y = app.screen.height / 2;
 
       updateParallax();
     });
@@ -175,8 +176,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getTravel() {
     // сколько можно сместить центр, чтобы не оголить края
-    const travelX = Math.max(0, (videoSprite.width - app.renderer.width) / 2);
-    const travelY = Math.max(0, (videoSprite.height - app.renderer.height) / 2);
+    const travelX = Math.max(0, (videoSprite.width - app.screen.width) / 2);
+    const travelY = Math.max(0, (videoSprite.height - app.screen.height) / 2);
     return { travelX, travelY };
   }
 
@@ -188,8 +189,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const ox = PARALLAX_DIR * lerp(-travelX, +travelX, rx);
     const oy = PARALLAX_DIR * lerp(-travelY, +travelY, ry);
 
-    const cx = app.renderer.width / 2 + ox;
-    const cy = app.renderer.height / 2 + oy;
+    const cx = app.screen.width / 2 + ox;
+    const cy = app.screen.height / 2 + oy;
 
     videoSprite.x = cx;
     videoSprite.y = cy;
@@ -228,10 +229,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const displacementSprite = new PIXI.Sprite(displacementTexture);
   // делаем спрайт крупнее, чем экран, чтобы не было краёв
-  displacementSprite.width = app.renderer.width * 2;
-  displacementSprite.height = app.renderer.height * 2;
-  displacementSprite.x = -app.renderer.width / 2;
-  displacementSprite.y = -app.renderer.height / 2;
+  displacementSprite.width = app.screen.width * 2;
+  displacementSprite.height = app.screen.height * 2;
+  displacementSprite.x = -app.screen.width / 2;
+  displacementSprite.y = -app.screen.height / 2;
   stageContainer.addChild(displacementSprite);
 
   // === Создаём полупрозрачный слой для "волнового" шума ===
@@ -240,30 +241,25 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const noiseSprite = new PIXI.TilingSprite(
     noiseTexture,
-    app.renderer.width,
-    app.renderer.height
+    app.screen.width,
+    app.screen.height
   );
   noiseSprite.alpha = 0.2; // лёгкая прозрачность, чтобы “мерцало”
   stageContainer.addChild(noiseSprite);
 
   // === Фильтр смещения ===
   const displacementFilter = new PIXI.DisplacementFilter(displacementSprite);
-  displacementFilter.scale.x = 30;
-  displacementFilter.scale.y = 60;
+  displacementFilter.scale.x = 20;
+  displacementFilter.scale.y = 40;
 
   // === Анимация дребезжания ===
+  let frame = 0;
   app.ticker.add((delta) => {
-    // движение карты (создаёт эффект колебаний)
+    if ((frame++ & 1) === 1) return; // обновлять через кадр
     displacementSprite.x += 0.6 * delta;
     displacementSprite.y += 0.4 * delta;
-
-    // бесконечная прокрутка (wrap)
-    if (displacementSprite.x > 0)
-      displacementSprite.x = -app.renderer.width / 2;
-    if (displacementSprite.y > 0)
-      displacementSprite.y = -app.renderer.height / 2;
-
-    // лёгкое движение шумового слоя для "жизни"
+    if (displacementSprite.x > 0) displacementSprite.x = -app.screen.width / 2;
+    if (displacementSprite.y > 0) displacementSprite.y = -app.screen.height / 2;
     noiseSprite.tilePosition.x += 0.09 * delta;
     noiseSprite.tilePosition.y += 0.05 * delta;
   });
@@ -272,27 +268,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Реакция на resize ===
   window.addEventListener("resize", () => {
-    window.addEventListener("orientationchange", () => {
-      app.renderer.resize(containerEl.clientWidth, containerEl.clientHeight);
-    });
-
-    videoSprite.width = app.renderer.width * 1.8;
-    videoSprite.height = app.renderer.height * 1.8;
-    videoSprite.x = app.renderer.width / 2;
-    videoSprite.y = app.renderer.height / 2;
+    videoSprite.width = app.screen.width * 1.8;
+    videoSprite.height = app.screen.height * 1.8;
+    videoSprite.x = app.screen.width / 2;
+    videoSprite.y = app.screen.height / 2;
 
     noiseSprite.tileScale.set(
-      app.renderer.width / noiseSprite.texture.width,
-      app.renderer.height / noiseSprite.texture.height
+      app.screen.width / noiseSprite.texture.width,
+      app.screen.height / noiseSprite.texture.height
     );
 
-    displacementSprite.width = app.renderer.width * 2;
-    displacementSprite.height = app.renderer.height * 2;
-    displacementSprite.x = -app.renderer.width / 2;
-    displacementSprite.y = -app.renderer.height / 2;
+    displacementSprite.width = app.screen.width * 2;
+    displacementSprite.height = app.screen.height * 2;
+    displacementSprite.x = -app.screen.width / 2;
+    displacementSprite.y = -app.screen.height / 2;
 
-    noiseSprite.width = app.renderer.width;
-    noiseSprite.height = app.renderer.height;
+    noiseSprite.width = app.screen.width;
+    noiseSprite.height = app.screen.height;
 
     updateParallax();
   });
@@ -406,7 +398,8 @@ async function initField() {
 
   if (positions.length < N) {
     console.warn(
-      `Разместили ${positions.length}/${N} при min=${MIN_DISTANCE_VW}vw, max=${MAX_DISTANCE_VW}vw. Увеличьте SCALE_FACTOR или скорректируйте min/max.`
+      `Разместили ${positions.length}/${N} при min=${MIN_DISTANCE_VW}vw, max=${MAX_DISTANCE_VW}vw. 
+      Увеличьте SCALE_FACTOR или скорректируйте min/max.`
     );
   }
 
@@ -594,7 +587,7 @@ async function initField() {
     }
 
     document.getElementById("main-field").appendChild(block);
-    console.log(`rendered ${i}`);
+    // console.log(`rendered ${i}`);
     blocks[i] = block;
     clampCenterToField(block, positions[i].x, positions[i].y);
   }
@@ -684,7 +677,7 @@ async function initField() {
 
     const parent = document.getElementById("main-field");
     parent.appendChild(block);
-    console.log(`rendered ${i}`);
+    // console.log(`rendered ${i}`);
     blocks[i] = block;
 
     const doClamp = () =>
@@ -710,7 +703,7 @@ async function initField() {
     });
 
     document.getElementById("main-field").appendChild(block);
-    console.log(`rendered ${i}`);
+    // console.log(`rendered ${i}`);
     blocks[i] = block;
   }
 
@@ -809,7 +802,7 @@ async function initField() {
         }
       });
       // опционально, логим прогресс
-      console.log(`Найдено: ${found.size}/${items.length}`);
+      // console.log(`Найдено: ${found.size}/${items.length}`);
     },
     {
       root: wrapper, // важно: скроллит именно wrapper
@@ -831,6 +824,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const layer = document.getElementById("blending-explenation");
   const containerInv = document.querySelector("html");
   if (!questSpan || !layer) return;
+
+  if (window.devicePixelRatio > 2 || navigator.hardwareConcurrency <= 4) {
+    document.documentElement.classList.add("low-perf");
+  }
 
   layer.style.opacity = "0";
 
@@ -891,7 +888,8 @@ document.addEventListener("DOMContentLoaded", () => {
     clearAnims();
     const doClose = () => {
       layer.classList.add("blend-anim-out"); // запустить fade-out (анимация перекроет opacity:1)
-      containerInv.classList.add("pixi-anim-out"); // запустить fade-out (анимация перекроет opacity:1)
+      containerInv.classList.add("pixi-anim-out"); // запустить fade-out
+      // (анимация перекроет opacity:1)
 
       layer.addEventListener(
         "animationend",
@@ -931,5 +929,233 @@ document.addEventListener("DOMContentLoaded", () => {
   questSpan.addEventListener("click", (e) => {
     e.preventDefault();
     isOpen ? close() : open();
+  });
+});
+
+// Lightweight floating images overlay: no Pixi, RAF-based
+// Expects window.PICS = [url1, url2, ...] (25 images). If missing, uses a single fallback.
+
+document.addEventListener("DOMContentLoaded", function () {
+  const container = document.getElementById("pixi-wrapper");
+  if (!container) return;
+
+  const IMAGES =
+    Array.isArray(window.PICS) && window.PICS.length
+      ? window.PICS
+      : [
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/ar.webp",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_17c39b5ebfce6f63b622346d966b34af.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_1c300758673bb2ee8924571c026759f9.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_1ce340ea95ce6d0563f89516c962eec9.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_28562d4eccd70a092c4cb30e55b127c3.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_2b1485cbb03ce46dfbece20f7276832d.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_312f8af9f2526694cafa3771878119e4.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_51625c7960e1a7352fa89e0e3af7dd42.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_5a99021cb90714869e7cc137ddd22399.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_5eb9627659ec24f59495d63c19a40018.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_6397cdfea5ad82371d31c34c47f7f46c.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_6c9f5a2bd1ba0be3c780d158c19d483d.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_871653cae6f9aa282f4cfde634ee84f2.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_91b46e8287a9abf6c95782d3cb3152b2.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_9f050f313cabc8e0f726c561f82a7640.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_a4c9255738bb3b4397b0261171264e7c.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_b8755ea1b592d62b999df170a82b4a19.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_d217e6a9a2ad80c3fe16a6e5c1a7fd28.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_dbc5c8a6eeae6710fb5a398abcd4adad.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_de4a16120dd519bd604013775f828464.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_e34b08a5d5957be5d2b32e976b2ca1ae.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/original_e8ab5d1c14f7d75ce10ac5170fb868ab.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/ssdv.png",
+          "https://dunchekk.github.io/stud-2_01-struct-lending/body-parts/svczx.png",
+        ];
+
+  // Config
+  const MAX_CONCURRENT = 1; // 2–3 at a time
+  const SPAWN_DELAY_MS = [1800, 3400]; // randomized between
+  const OFFSCREEN_MARGIN = 120; // px beyond viewport to spawn/expire
+  const SIZE_VW = [60, 110]; // large images in vw
+  const OPACITY = [0.1, 0.2];
+  const DURATION_S = [16, 32]; // traverse duration in seconds
+
+  const active = new Set();
+  let rafId = 0;
+  let spawnTimer = 0;
+
+  function rand(a, b) {
+    return a + Math.random() * (b - a);
+  }
+  function randInt(a, b) {
+    return Math.floor(rand(a, b));
+  }
+  function pick(arr) {
+    return arr[randInt(0, arr.length)];
+  }
+
+  function viewport() {
+    return {
+      w: window.innerWidth,
+      h: window.innerHeight,
+    };
+  }
+
+  function makeImgEl(src) {
+    const img = new Image();
+    img.src = src;
+    img.className = "floating-img";
+    img.decoding = "async";
+    img.loading = "eager";
+    img.draggable = false;
+    img.style.position = "absolute";
+    img.style.pointerEvents = "none";
+    img.style.mixBlendMode = "color-dodge";
+    img.style.willChange = "transform, opacity";
+    img.style.opacity = String(rand(OPACITY[0], OPACITY[1]));
+    // size via vw to scale with viewport width; height auto to preserve ratio
+    img.style.width = `${rand(SIZE_VW[0], SIZE_VW[1]).toFixed(1)}vw`;
+    img.style.height = "auto";
+    return img;
+  }
+
+  // Compute start and end points just outside the screen
+  function randomPath() {
+    const { w, h } = viewport();
+    const m = OFFSCREEN_MARGIN;
+    // choose start edge: 0=left,1=right,2=top,3=bottom
+    const edge = randInt(0, 4);
+    let x0, y0, x1, y1;
+    switch (edge) {
+      case 0: // left → any other side
+        x0 = -m;
+        y0 = rand(-m, h + m);
+        x1 = w + m;
+        y1 = rand(-m, h + m);
+        break;
+      case 1: // right → any other side
+        x0 = w + m;
+        y0 = rand(-m, h + m);
+        x1 = -m;
+        y1 = rand(-m, h + m);
+        break;
+      case 2: // top → bottom-ish
+        x0 = rand(-m, w + m);
+        y0 = -m;
+        x1 = rand(-m, w + m);
+        y1 = h + m;
+        break;
+      default: // bottom → top-ish
+        x0 = rand(-m, w + m);
+        y0 = h + m;
+        x1 = rand(-m, w + m);
+        y1 = -m;
+        break;
+    }
+    // small jitter so not perfectly straight 1:1 opposites
+    x1 += rand(-m * 0.5, m * 0.5);
+    y1 += rand(-m * 0.5, m * 0.5);
+    return { x0, y0, x1, y1 };
+  }
+
+  function spawnOne() {
+    if (active.size >= MAX_CONCURRENT) return;
+    const src = pick(IMAGES);
+    const el = makeImgEl(src);
+    container.appendChild(el);
+
+    const { x0, y0, x1, y1 } = randomPath();
+    const start = performance.now();
+    const dur = rand(DURATION_S[0], DURATION_S[1]) * 1000; // ms
+
+    // center the image around its position after it loads (approx via naturalWidth)
+    let offsetX = 0;
+    let offsetY = 0;
+    const setOffsets = () => {
+      // Use current rendered size
+      const rect = el.getBoundingClientRect();
+      offsetX = rect.width * 0.5;
+      offsetY = rect.height * 0.5;
+    };
+    el.onload = setOffsets;
+    // in case of cache
+    if (el.complete) setOffsets();
+
+    const item = {
+      el,
+      start,
+      dur,
+      x0,
+      y0,
+      x1,
+      y1,
+      dead: false,
+      get offsetX() {
+        return offsetX;
+      },
+      get offsetY() {
+        return offsetY;
+      },
+    };
+    active.add(item);
+  }
+
+  function animate(now) {
+    if (active.size) {
+      active.forEach((it) => {
+        if (it.dead) return;
+        const t = Math.min(1, (now - it.start) / it.dur);
+        const x = it.x0 + (it.x1 - it.x0) * t - (it.offsetX || 0);
+        const y = it.y0 + (it.y1 - it.y0) * t - (it.offsetY || 0);
+        it.el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        it.el.style.opacity = String(
+          // ease-in-out opacity subtlety
+          0.1 + 0.3 * Math.sin(Math.PI * Math.min(t, 1))
+        );
+        if (t >= 1) {
+          it.dead = true;
+          it.el.remove();
+          active.delete(it);
+        }
+      });
+    }
+
+    rafId = requestAnimationFrame(animate);
+  }
+
+  function scheduleNextSpawn() {
+    clearTimeout(spawnTimer);
+    const delay = randInt(SPAWN_DELAY_MS[0], SPAWN_DELAY_MS[1]);
+    spawnTimer = setTimeout(() => {
+      // keep at most MAX_CONCURRENT moving
+      if (active.size < MAX_CONCURRENT) spawnOne();
+      scheduleNextSpawn();
+    }, delay);
+  }
+
+  function start() {
+    // ensure container is enabled
+    container.style.display = "block";
+    if (!rafId) rafId = requestAnimationFrame(animate);
+    scheduleNextSpawn();
+  }
+  function stop() {
+    clearTimeout(spawnTimer);
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+    active.forEach((it) => it.el.remove());
+    active.clear();
+  }
+
+  // Auto-start only if there are images
+  if (IMAGES && IMAGES.length) start();
+
+  // Expose simple controls if needed
+  window.FloatingImages = { start, stop };
+
+  // Handle tab visibility to reduce work
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stop();
+    } else {
+      start();
+    }
   });
 });
