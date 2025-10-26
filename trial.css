@@ -886,3 +886,9 @@ html.low-perf .text-el {
 @media screen and (max-width: 360px) {
   /* extra small phones */
 }
+
+img {
+  user-drag: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
