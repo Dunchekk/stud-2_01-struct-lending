@@ -1,6 +1,7 @@
 /* Скрыть вертикальный и горизонтальный скроллбары во всех браузерах */
 html {
   will-change: contents;
+  transition: filter 500ms ease;
 }
 
 /* базовые переменные уже заданы в :root */
@@ -286,8 +287,9 @@ html.blend-dark #pixi-container-images .floating-img {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #ffffff;
-  color: #000;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
   z-index: 2000;
   overflow: hidden; /* собственный скролл, не передаёт в основную страницу */
   opacity: 1;
@@ -301,7 +303,7 @@ html.blend-dark #pixi-container-images .floating-img {
 /* Узел в инициализационном экране должен быть чётко виден на белом фоне */
 #inition-field .text-el,
 #inition-field .text-el * {
-  color: #000 !important;
+  color: #ffffff;
 }
 #inition-field .text-el {
   background: transparent;
