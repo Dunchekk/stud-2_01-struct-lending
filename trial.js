@@ -1,7 +1,5 @@
 /* global PIXI */
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("Скрипт с GitHub Pages работает!");
-
+window.onload = function () {
   console.log(PIXI);
 
   //--------------------------------------- pixi start -----------------------------------> init
@@ -47,12 +45,35 @@ document.addEventListener("DOMContentLoaded", () => {
     videoEl.play().catch(() => {}); // безопасный запуск, даже если Chrome блокирует autoplay
   });
 
-  // Растягиваем чуть больше экрана (чтобы можно было смещать и не было краёв)
-  videoSprite.width = app.screen.width * 1.8;
-  videoSprite.height = app.screen.height * 1.8;
+  // Fit video to cover while preserving aspect ratio; add overscan for parallax
+  const OVERSCAN = 1.4; // was ~1.8 fixed stretch; use slightly gentler overscan
   videoSprite.anchor.set(0.5);
-  videoSprite.x = app.screen.width / 2;
-  videoSprite.y = app.screen.height / 2;
+
+  function sizeVideoToCover() {
+    const vw =
+      (videoEl && videoEl.videoWidth) || videoSprite.texture.width || 1920;
+    const vh =
+      (videoEl && videoEl.videoHeight) || videoSprite.texture.height || 1080;
+    if (!vw || !vh) return;
+    const scale =
+      Math.max(app.screen.width / vw, app.screen.height / vh) * OVERSCAN;
+    videoSprite.scale.set(scale);
+    videoSprite.x = app.screen.width / 2;
+    videoSprite.y = app.screen.height / 2;
+    if (blurVideoSprite) {
+      blurVideoSprite.scale.set(scale);
+      blurVideoSprite.x = videoSprite.x;
+      blurVideoSprite.y = videoSprite.y;
+    }
+  }
+
+  // Initial sizing when metadata is available; fallback run on resize too
+  const applyInitialSizing = () => sizeVideoToCover();
+  if (videoEl.readyState >= 1) applyInitialSizing();
+  else
+    videoEl.addEventListener("loadedmetadata", applyInitialSizing, {
+      once: true,
+    });
 
   // Добавляем В САМОЕ НАЧАЛО stageContainer (до текстур)
   stageContainer.addChildAt(videoSprite, 0);
@@ -75,10 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // === 2. создаём размытый слой поверх ===
     blurVideoSprite = new PIXI.Sprite(videoSprite.texture);
     blurVideoSprite.anchor.set(0.5);
-    blurVideoSprite.width = videoSprite.width;
-    blurVideoSprite.height = videoSprite.height;
-    blurVideoSprite.x = app.screen.width / 2;
-    blurVideoSprite.y = app.screen.height / 2;
+    // scale/position applied by sizeVideoToCover
 
     const blurFilter = new PIXI.BlurFilter();
     blurFilter.blur = 6;
@@ -148,11 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       focus.texture = newTexture;
 
-      blurVideoSprite.width = videoSprite.width;
-      blurVideoSprite.height = videoSprite.height;
-      blurVideoSprite.x = app.screen.width / 2;
-      blurVideoSprite.y = app.screen.height / 2;
-
+      sizeVideoToCover();
       updateParallax();
     });
   }
@@ -237,7 +251,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Создаём полупрозрачный слой для "волнового" шума ===
   const noiseTexture = PIXI.Texture.from(
-    "./imgs/noisy.png" // мягкая прозрачная noise-текстура
+    "https://dunchekk.github.io/stud-2_01-struct-lending/imgs/noisy.png" // мягкая прозрачная
+    // noise-текстура
   );
   const noiseSprite = new PIXI.TilingSprite(
     noiseTexture,
@@ -268,10 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Реакция на resize ===
   window.addEventListener("resize", () => {
-    videoSprite.width = app.screen.width * 1.8;
-    videoSprite.height = app.screen.height * 1.8;
-    videoSprite.x = app.screen.width / 2;
-    videoSprite.y = app.screen.height / 2;
+    sizeVideoToCover();
 
     noiseSprite.tileScale.set(
       app.screen.width / noiseSprite.texture.width,
@@ -294,7 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // === (чтобы тильда не страдала хренью) ===
 
   document.body.style.overflow = "hidden";
-});
+};
 
 async function initField() {
   // 1️⃣ Загружаем JSON
@@ -307,8 +319,12 @@ async function initField() {
   const SCREEN_W = window.innerWidth;
   const SCREEN_H = window.innerHeight;
   const SCALE_FACTOR = 9;
-  const FIELD_W = SCREEN_W * SCALE_FACTOR;
-  const FIELD_H = SCREEN_H * SCALE_FACTOR;
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Make field proportionally wider on mobile (reduce tallness)
+  const WIDTH_BOOST = isMobile ? 1.8 : 1.0; // widen
+  const HEIGHT_SHRINK = isMobile ? 0.9 : 1.0; // slightly shorter
+  const FIELD_W = SCREEN_W * SCALE_FACTOR * WIDTH_BOOST;
+  const FIELD_H = SCREEN_H * SCALE_FACTOR * HEIGHT_SHRINK;
 
   // минимальный отступ между краем нода и краем поля
   const EDGE_MARGIN_VW = 5; // поменяйте при желании
@@ -734,8 +750,8 @@ async function initField() {
       resizeScheduled = false;
       const SW = window.innerWidth;
       const SH = window.innerHeight;
-      const newW = SW * SCALE_FACTOR;
-      const newH = SH * SCALE_FACTOR;
+      const newW = SW * SCALE_FACTOR * (isMobile ? WIDTH_BOOST : 1);
+      const newH = SH * SCALE_FACTOR * (isMobile ? HEIGHT_SHRINK : 1);
       applyLayout(newW, newH);
     });
   });
@@ -817,6 +833,199 @@ async function initField() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initField();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const root = document.getElementById("main-field-wrapper");
+  const field = document.getElementById("main-field");
+  if (!root || !field) return;
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.intersectionRatio >= 0.5) {
+          entry.target.classList.add("in-view");
+        } else {
+          entry.target.classList.remove("in-view");
+        }
+      }
+    },
+    {
+      root,
+      threshold: [0, 0.4, 1],
+    }
+  );
+
+  const enhance = (el) => {
+    if (!el.classList.contains("reveal")) el.classList.add("reveal");
+    io.observe(el);
+  };
+
+  // обработать уже отрендеренные
+  document.querySelectorAll(".map-item").forEach(enhance);
+
+  // и любые будущие вставки из third-layer.js
+  const mo = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      m.addedNodes.forEach((n) => {
+        if (!(n instanceof HTMLElement)) return;
+        if (n.matches(".map-item")) enhance(n);
+        n.querySelectorAll?.(".map-item").forEach(enhance);
+      });
+    }
+  });
+  mo.observe(field, { childList: true, subtree: true });
+
+  //---------------------------
+
+  const wrapper = document.getElementById("main-field-wrapper");
+  if (!wrapper || !field) return;
+
+  // вычисляем целевые координаты центра
+  const computeCenter = () => {
+    const maxX = Math.max(0, field.scrollWidth - wrapper.clientWidth);
+    const maxY = Math.max(0, field.scrollHeight - wrapper.clientHeight);
+    return {
+      left: maxX / 2,
+      top: maxY / 2,
+    };
+  };
+
+  // один раз проскроллить в центр, с фоллбеком если размеры меняются
+  const scrollToCenter = (behavior = "auto") => {
+    const { left, top } = computeCenter();
+    wrapper.scrollTo({ left, top, behavior });
+    // На некоторых платформах программный скролл не всегда шлёт событие:
+    // форсим, чтобы параллакс/маска обновились.
+    wrapper.dispatchEvent(new Event("scroll", { bubbles: false }));
+  };
+
+  // ждём, пока third-layer и стили зададут размеры поля
+  let done = false;
+  const tryCenter = () => {
+    if (done) return;
+    const ready =
+      field.scrollWidth > wrapper.clientWidth + 100 &&
+      field.scrollHeight > wrapper.clientHeight + 100;
+
+    if (ready) {
+      done = true;
+      // первый раз — без анимации (мгновенно к центру)
+      scrollToCenter("auto");
+      return true;
+    }
+    return false;
+  };
+
+  // 1) пробуем сразу после layout
+  requestAnimationFrame(() => {
+    if (tryCenter()) return;
+
+    // 2) слушаем изменения размеров поля и контейнера, центрируем один раз
+    const ro = new ResizeObserver(() => {
+      if (tryCenter()) ro.disconnect();
+    });
+    ro.observe(field);
+    ro.observe(wrapper);
+
+    // 3) запасной таймер (если ResizeObserver недоступен/не сработал)
+    const t0 = performance.now();
+    const poll = () => {
+      if (tryCenter()) return;
+      if (performance.now() - t0 > 2000) return; // не ждём больше 2с
+      requestAnimationFrame(poll);
+    };
+    poll();
+  });
+
+  // На полную загрузку (видео/картинки) ещё раз подровнять центр
+  window.addEventListener("load", () => {
+    if (!done) scrollToCenter("auto");
+  });
+});
+
+//------
+
+document.addEventListener("DOMContentLoaded", () => {
+  const wrapper = document.getElementById("main-field-wrapper");
+  const field = document.getElementById("main-field");
+  if (!wrapper || !field) return;
+
+  let isPointerDown = false;
+  let isDragging = false;
+  let startX = 0,
+    startY = 0;
+  let startScrollLeft = 0,
+    startScrollTop = 0;
+  let spacePanning = false; // удерживай пробел для “hand tool” поверх узлов
+
+  // Space = hand tool (опционально)
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+      spacePanning = true;
+      wrapper.classList.add("grab-enabled");
+      e.preventDefault();
+    }
+  });
+  window.addEventListener("keyup", (e) => {
+    if (e.code === "Space") {
+      spacePanning = false;
+      wrapper.classList.remove("grab-enabled");
+    }
+  });
+
+  wrapper.addEventListener("pointerdown", (e) => {
+    // только мышь, ЛКМ
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+
+    // не начинаем перетаскивание, если клик по узлу, кроме режима Space
+    if (!spacePanning && e.target.closest(".text-el, .pic-el")) return;
+
+    isPointerDown = true;
+    isDragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    startScrollLeft = wrapper.scrollLeft;
+    startScrollTop = wrapper.scrollTop;
+
+    wrapper.setPointerCapture?.(e.pointerId);
+    // курсор/отключение выделения включим, когда поймем, что реально тащим
+  });
+
+  wrapper.addEventListener("pointermove", (e) => {
+    if (!isPointerDown) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // Порог, чтобы не ломать клики/выделение при микродвижении
+    if (!isDragging && Math.abs(dx) + Math.abs(dy) > 3) {
+      isDragging = true;
+      wrapper.classList.add("dragging");
+    }
+    if (!isDragging) return;
+
+    // Паним: двигаем скролл в противоположную сторону движения указателя
+    wrapper.scrollLeft = startScrollLeft - dx;
+    wrapper.scrollTop = startScrollTop - dy;
+
+    // чтобы не выделялся текст при drag
+    e.preventDefault();
+  });
+
+  const endDrag = (e) => {
+    if (!isPointerDown) return;
+    isPointerDown = false;
+    if (isDragging) {
+      wrapper.classList.remove("dragging");
+      isDragging = false;
+    }
+    wrapper.releasePointerCapture?.(e.pointerId);
+  };
+
+  wrapper.addEventListener("pointerup", endDrag);
+  wrapper.addEventListener("pointercancel", endDrag);
+  wrapper.addEventListener("pointerleave", endDrag);
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -931,6 +1140,247 @@ document.addEventListener("DOMContentLoaded", () => {
     isOpen ? close() : open();
   });
 });
+
+function initInitionField() {
+  const initEl = document.getElementById("inition-field");
+  if (!initEl) return;
+
+  const dataInit = {
+    id: 1,
+    name: "инициализация",
+    type: "text-el",
+    paragraphs: [
+      "«В&nbsp;целях соблюдения академических норм они [студенты] обязаны выделять результаты своей деятельности, при&nbsp;реализации которой был использован ИИ, указывая характер и&nbsp;объем работ, выполненных с&nbsp;его помощью. В&nbsp;противном случае это рассматривается как нарушение академических норм, что может повлечь за&nbsp;собой дисциплинарное взыскание» — пишется в&nbsp;справочнике учебного процесса НИУ ВШЭ.",
+      "Было ли выписано хотя бы одно дисциплинарное взыскание на&nbsp;основании отсутствия указания об&nbsp;использовании студентом языковой модели? Преподаватели, вероятно, знают, насколько много студенческих текстов на&nbsp;самом деле написано не&nbsp;студентами — если не&nbsp;знают, то&nbsp;чувствуют.",
+      "За&nbsp;последний год 85 % (а&nbsp;то и&nbsp;больше) всех студенческих текстов, которые я&nbsp;читала (включая тексты дизайн-проектов, визуальных исследований, эссе и&nbsp;в&nbsp;целом любых заданий, где можно было бы&nbsp;сдать нечто, напоминающее текст), были написаны нейросетями. Говорил ли об&nbsp;этом хоть кто-то при&nbsp;его сдаче? Нет. По&nbsp;крайней мере, не преподавателю, а&nbsp;мне — одногруппнику, у&nbsp;которого явно нет намерений никого «сдать».",
+      "Пока что НИУ ВШЭ даже на&nbsp;первый взгляд не&nbsp;справляется с&nbsp;выполнением своих предписаний в&nbsp;справочнике учебного процесса, ведь полагаться в&nbsp;вопросе «авторства» (термин существующей традиции академии, все еще используемой ею) можно разве что на&nbsp;честность студента, которой, увы (судя по&nbsp;тому, что творится вокруг), у&nbsp;него нет.",
+      "Учебный процесс столкнулся с&nbsp;чем-то совершенно новым, и&nbsp;составители «академических норм» и&nbsp;«справочника учебного процесса» пока что вообще не&nbsp;понимают, как действовать. Бакалавриат можно закончить, не&nbsp;написав ни&nbsp;строчки текста самостоятельно — многие мои одногруппники упорно пытаются&nbsp;выполнить такой челлендж и&nbsp;пока что идут очень успешно — это пугает и&nbsp;вдохновляет одновременно.",
+      "Это определённо требует обсуждения, постановки совершенно новых вопросов, пересмотра уже существующих, но&nbsp;более не&nbsp;работающих концепций, обновления старых понятий и&nbsp;логики, которая уже не&nbsp;актуальна. Времени на&nbsp;это обсуждение у&nbsp;нас нет: темпы ежегодного роста способностей ИИ огромные и&nbsp;останавливаться не&nbsp;планируют.",
+      "В&nbsp;этом обсуждении придётся дойти и&nbsp;до&nbsp;новых «академических норм», хотя это будет далеко не первым шагом. Этот лонгрид — частичка в&nbsp;потоке этого бесконечного обсуждения, попытка собрать и&nbsp;использовать те&nbsp;концепции, которые, кажется, всё ещё работают в&nbsp;законах нового мира. Попытка найти что-то уже знакомое, чтобы стоять на&nbsp;теоретической почве было не&nbsp;так&nbsp;шатко.",
+      "Концепции, которыми я пользуюсь здесь, в&nbsp;основном будут взяты из&nbsp;методологии постструктурализма — большинство из&nbsp;них не просто пережили появление языковых моделей, но&nbsp;были ими обновлены / доказаны / выделены. Возможно, меня может куда-то занести, ноя&nbsp;буду стараться следовать обозначенному плану.",
+      "А теперь задачка. Был ли&nbsp;этот текст написан человеком? Если да,&nbsp;то&nbsp;какая его часть? Как вы&nbsp;это поняли?",
+    ],
+    footnotes: [],
+    style: "",
+  };
+
+  function renderTextElement(data) {
+    const block = document.createElement("div");
+    block.classList.add("text-el");
+    block.classList.add("init-item");
+
+    // можно позже задать координаты block.style.left/top из функции рандомного позиционирования
+
+    // позиционирование — по центру экрана
+    block.style.position = "absolute";
+    block.style.left = "50vw";
+    block.style.top = "50vh";
+    block.style.transform = "translate(-50%, -50%)";
+
+    block.innerHTML = `
+    <div class="meta-top">
+      <span class="title">${data.name}</span>
+    </div>
+    <div class="text-content">
+      ${data.paragraphs
+        .map((p, i) => `<p ${i === 0 ? 'class="active"' : ""}>${p}</p>`)
+        .join("")}
+    </div>
+    <div class="meta-bottom">
+      <span class="counter">1/${data.paragraphs.length}</span>
+      <span class="scroll-hint">scroll it</span>
+    </div>
+  `;
+
+    let current = 0;
+    const paragraphs = block.querySelectorAll("p");
+    const counter = block.querySelector(".counter");
+
+    let switching = false;
+    let armedToClose = false; // требуем ещё один скролл на последнем абзаце
+
+    const SWITCH_COOLDOWN = 1000; // пауза между листаниями в мс
+    function withCooldown(fn) {
+      if (switching) return;
+      const didSwitch = fn();
+      if (didSwitch) {
+        switching = true;
+        setTimeout(() => {
+          switching = false;
+        }, SWITCH_COOLDOWN);
+      }
+    }
+
+    // Обработчик скролла при наведении
+    // helper: close overlay smoothly (по клику на крестик)
+    const closeOverlay = () => {
+      if (initEl.classList.contains("closing")) return;
+      initEl.classList.add("closing");
+      initEl.addEventListener(
+        "transitionend",
+        () => {
+          initEl.style.display = "none";
+        },
+        { once: true }
+      );
+    };
+
+    block.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        if (e.deltaY > 0) withCooldown(nextParagraph);
+        else withCooldown(prevParagraph);
+      },
+      { passive: false }
+    );
+
+    // --------------можно также добавить листание свайпом для тач
+    let startY = null;
+    let swipeRecognized = false;
+    const SWIPE_THRESHOLD = 50;
+
+    block.addEventListener(
+      "touchstart",
+      (e) => {
+        startY = e.touches[0].clientY;
+        swipeRecognized = false;
+      },
+      { passive: true }
+    );
+
+    block.addEventListener(
+      "touchmove",
+      (e) => {
+        if (startY == null) return;
+        const dy = e.touches[0].clientY - startY;
+
+        // жест распознан — блокируем прокрутку контейнера
+        if (Math.abs(dy) > SWIPE_THRESHOLD) {
+          swipeRecognized = true;
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+
+    block.addEventListener("touchend", (e) => {
+      if (startY == null) return;
+      const diff = e.changedTouches[0].clientY - startY;
+
+      if (Math.abs(diff) > SWIPE_THRESHOLD) {
+        if (diff < 0) withCooldown(nextParagraph);
+        if (diff > 0) withCooldown(prevParagraph);
+      }
+
+      startY = null;
+      swipeRecognized = false;
+    });
+
+    //--------------------
+
+    function nextParagraph() {
+      if (current < paragraphs.length - 1) {
+        paragraphs[current].classList.remove("active");
+        paragraphs[current].classList.add("exit");
+        current++;
+        paragraphs[current].classList.add("active");
+        counter.textContent = `${current + 1}/${paragraphs.length}`;
+        setTimeout(() => {
+          paragraphs.forEach((p) => p.classList.remove("exit"));
+        }, 600);
+        return true;
+      }
+      return false;
+    }
+
+    function prevParagraph() {
+      if (current > 0) {
+        paragraphs[current].classList.remove("active");
+        // снять возможные «зависшие» exit
+        paragraphs.forEach((p) => p.classList.remove("exit"));
+        current--;
+        paragraphs[current].classList.add("active");
+        counter.textContent = `${current + 1}/${paragraphs.length}`;
+        return true;
+      }
+      return false;
+    }
+
+    // Добавим крестик в правом верхнем углу шапки
+    const metaTop = block.querySelector(".meta-top");
+    if (metaTop) {
+      const closeBtn = document.createElement("span");
+      closeBtn.className = "close-init";
+      closeBtn.setAttribute("role", "button");
+      closeBtn.setAttribute("aria-label", "закрыть");
+      closeBtn.textContent = "×";
+      metaTop.appendChild(closeBtn);
+      closeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeOverlay();
+      });
+    }
+
+    document.getElementById("inition-field").appendChild(block);
+    // Явно перекрашиваем текст, чтобы не побеждал .text-el { color: white } из third-layer.css
+    block.style.setProperty("color", "#000", "important");
+    block.style.zIndex = "2001";
+  }
+
+  renderTextElement(dataInit);
+
+  // API: показать/скрыть инициализационный слой по требованию
+  const showOverlay = () => {
+    // если уже виден — ничего не делаем
+    if (
+      initEl.style.display !== "none" &&
+      !initEl.classList.contains("closing")
+    )
+      return;
+    // убедимся, что есть контент (на случай, если его удалят вручную)
+    if (!initEl.querySelector(".text-el")) {
+      renderTextElement(dataInit);
+    }
+    // стартуем с прозрачности, затем уберём класс и дадим transition сработать до 1
+    initEl.style.display = "block";
+    initEl.classList.add("closing"); // opacity:0
+    // следующий кадр — убрать closing, чтобы анимироваться к opacity:1
+    requestAnimationFrame(() => {
+      initEl.classList.remove("closing");
+    });
+  };
+
+  const closeOverlay = () => {
+    if (initEl.classList.contains("closing")) return;
+    initEl.classList.add("closing");
+    initEl.addEventListener(
+      "transitionend",
+      () => {
+        initEl.style.display = "none";
+      },
+      { once: true }
+    );
+  };
+
+  // Повесим на глобал (по желанию) и на #init-span
+  window.InitOverlay = { show: showOverlay, hide: closeOverlay };
+  const trigger = document.getElementById("init-span");
+  if (trigger) {
+    trigger.addEventListener("click", (e) => {
+      e.preventDefault();
+      showOverlay();
+    });
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initInitionField);
+} else {
+  // DOM уже готов, запускаем сразу (скрипт подключён внизу body)
+  initInitionField();
+}
 
 // Lightweight floating images overlay: no Pixi, RAF-based
 // Expects window.PICS = [url1, url2, ...] (25 images). If missing, uses a single fallback.

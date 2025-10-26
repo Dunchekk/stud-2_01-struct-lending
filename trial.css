@@ -1,0 +1,886 @@
+/* Скрыть вертикальный и горизонтальный скроллбары во всех браузерах */
+html {
+  will-change: contents;
+}
+
+/* базовые переменные уже заданы в :root */
+html.low-perf {
+  --edge-blur: 4px;
+  --edge-size: 6vw;
+  --edge-blur-y: 8px;
+  --edge-size-y: 8vw;
+  --edge-alpha: 0.3;
+  --edge-alpha-y: 0.45;
+}
+
+body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  overflow: -moz-scrollbars-none;
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+}
+body::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+/*#pixi-container {*/
+/*position: fixed;     */
+/*  top: 0;*/
+/*  left: 0;*/
+/*  width: 100vw;*/
+/*  height: 100vh;*/
+/*  margin: 0;*/
+/*padding: 0;        */
+/*}*/
+
+/* all archi boxes */
+
+.pixi-wrapper {
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  /* filter: invert(0); */
+}
+
+a {
+  text-decoration: none;
+  color: white;
+  font-size: 16px;
+}
+
+.pixi-anim-in {
+  animation: htmlInverseIn 1s ease forwards;
+}
+.pixi-anim-out {
+  animation: htmlInverseOut 1s ease forwards;
+}
+.pixi-hidden {
+  filter: invert(0);
+}
+
+.pixi-open {
+  filter: invert(1);
+}
+
+#gif {
+  height: 120vw;
+  position: absolute;
+  opacity: 70%;
+  /* background: red; */
+}
+
+#pixi-container-waves-blur {
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  /* background: red; */
+  /* opacity: 20%; */
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+#main-field-wrapper {
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* background: gray; */
+  /* opacity: 0; */
+  overflow: scroll;
+}
+
+#main-field-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* #main-field {
+  width: 300vw;
+  height: 300vw;
+  position: absolute;
+  top: 0;
+  left: 0;
+} */
+
+.floating-img {
+  position: absolute;
+  will-change: transform, opacity;
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+  user-select: none;
+  filter: saturate(1.1) contrast(1.05);
+}
+
+/* Optional: stronger result on dark backdrops */
+html.blend-dark #pixi-container-images .floating-img {
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  filter: brightness(1.15) contrast(1.1) saturate(1.1);
+}
+
+#fix-cover-elements {
+  display: none;
+}
+
+/* Overlay: включаем и поднимаем над контентом */
+#fix-cover-elements {
+  position: fixed;
+  inset: 0;
+  display: block; /* переопределяет style.css */
+  pointer-events: none; /* не блокирует клики/скролл */
+  isolation: isolate; /* do not participate in backdrop for blending */
+  /* z-index: 1000; поверх Pixi/поля */
+}
+:root {
+  /* базовые переменные для краёв */
+  --edge-size: 8vw;
+  --edge-alpha: 0.6;
+  --edge-blur: 6px;
+
+  /* индивидуальные параметры для верх/низ */
+  --edge-size-y: 10vw;
+  --edge-alpha-y: 0.9;
+  --edge-blur-y: 12px;
+}
+
+/* ==== БАЗА ДЛЯ ВСЕХ КРАЁВ ==== */
+.edge {
+  position: absolute;
+  backdrop-filter: blur(var(--edge-blur));
+  -webkit-backdrop-filter: blur(var(--edge-blur));
+  /* filter: blur(0.5px); */
+}
+
+/* ==== ВЕРХ ==== */
+.edge-top {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--edge-size-y);
+  backdrop-filter: blur(var(--edge-blur-y));
+  -webkit-backdrop-filter: blur(var(--edge-blur-y));
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--edge-alpha-y)) 0%,
+    rgba(0, 0, 0, var(--edge-alpha-y)) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+
+/* ==== НИЗ ==== */
+.edge-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--edge-size-y) * 0.6);
+  backdrop-filter: blur(var(--edge-blur-y));
+  -webkit-backdrop-filter: blur(var(--edge-blur-y));
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, calc(var(--edge-alpha-y) * 0.5)) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+}
+
+/* ==== ПРАВО ==== */
+.edge-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--edge-size);
+  background: linear-gradient(
+    to left,
+    rgba(0, 0, 0, var(--edge-alpha)) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to left, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 100%);
+}
+
+/* ==== ЛЕВО ==== */
+.edge-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--edge-size);
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, var(--edge-alpha)) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to right, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, transparent 100%);
+}
+
+/* ==== ТЕКСТОВЫЙ БЛОК ==== */
+.text-block-fixed {
+  position: absolute;
+  top: 1vw;
+  left: 1vw;
+  display: flex;
+}
+#found-div {
+  position: absolute;
+  bottom: 1vw;
+  left: 1vw;
+  display: flex;
+}
+
+#found-span {
+  margin-left: 1vw;
+}
+
+#TBFcol1 {
+  margin-right: 1vw;
+}
+
+#blending-explenation {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  padding-left: 2vw;
+  pointer-events: none;
+  /* opacity: 0; */
+}
+
+#BEXPtext-block {
+  width: 35vw;
+  z-index: 499;
+  pointer-events: none;
+}
+
+/* Paragraph spacing for the explanation block (desktop base) */
+#BEXPtext-block p {
+  margin: 0 0 0.9em 0; /* bottom spacing between paragraphs */
+}
+#BEXPtext-block p:last-child {
+  margin-bottom: 0;
+}
+
+#quastions {
+  position: fixed;
+  right: 1vw;
+  bottom: 1vw;
+  z-index: 500;
+  cursor: pointer;
+}
+
+/* ================= inition-field (initial white overlay) ================= */
+#inition-field {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #ffffff;
+  color: #000;
+  z-index: 2000;
+  overflow: hidden; /* собственный скролл, не передаёт в основную страницу */
+  opacity: 1;
+  transition: opacity 400ms ease;
+}
+#inition-field.closing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Узел в инициализационном экране должен быть чётко виден на белом фоне */
+#inition-field .text-el,
+#inition-field .text-el * {
+  color: #000 !important;
+}
+#inition-field .text-el {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Кнопка закрытия в шапке узла */
+#inition-field .meta-top .close-init {
+  cursor: pointer;
+  margin-left: 1rem;
+  user-select: none;
+  opacity: 0.8;
+  font-size: 28px; /* bigger cross for all viewports */
+  line-height: 1;
+}
+#inition-field .meta-top .close-init:hover {
+  opacity: 1;
+}
+
+@keyframes blendFadeIn {
+  0% {
+    opacity: 0;
+    /* transform: translateY(8px) scale(0.985); */
+  }
+  100% {
+    opacity: 1;
+    /* transform: translateY(0) scale(1); */
+  }
+}
+@keyframes blendFadeOut {
+  0% {
+    opacity: 1;
+    /* transform: translateY(0) scale(1); */
+  }
+  100% {
+    opacity: 0;
+    /* transform: translateY(8px) scale(0.985); */
+  }
+}
+
+@keyframes htmlInverseIn {
+  0% {
+    filter: invert(0);
+  }
+  100% {
+    filter: invert(1);
+  }
+}
+
+@keyframes htmlInverseOut {
+  0% {
+    filter: invert(1);
+  }
+  100% {
+    filter: invert(0);
+  }
+}
+
+/* утилиты для показа/скрытия */
+.blend-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.blend-anim-in {
+  animation: blendFadeIn 1s ease forwards;
+}
+.blend-anim-out {
+  animation: blendFadeOut 1s ease forwards;
+}
+.blend-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html.low-perf .text-el {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+#init-span {
+  position: absolute;
+  top: 1vw;
+  right: 1vw;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+@font-face {
+  font-family: "Spectral";
+  /* src: url(https://dunchekk.github.io/stud-2_01-struct-lending/fonts/Spectral-Regular.ttf); */
+  src: url(./fonts/Spectral-Regular.ttf);
+}
+
+* {
+  font-family: "Spectral";
+  color: white;
+}
+
+.text-el .meta-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  /* opacity: 0.7; */
+}
+
+.text-el .meta-bottom {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  /* opacity: 0.5; */
+}
+
+.text-el .text-content {
+  flex: 1;
+  /* add space between the title (meta-top) and paragraphs */
+  margin: 1vw 0 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.text-el p {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+  transition: all 0.6s ease;
+  /* stacked/animated paragraphs: no flow margins */
+  margin: 0;
+}
+
+.text-el p.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.text-el p.exit {
+  opacity: 0;
+  transform: translateY(-30%);
+}
+
+.pic-el {
+  max-width: 90vw;
+  max-height: 95vh;
+}
+
+/* reveal-on-scroll */
+.map-item.reveal {
+  opacity: 0.3;
+  transform: translateY(5px);
+  transition: opacity 400ms ease, transform 400ms ease;
+  will-change: opacity, transform;
+}
+.map-item.reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.text-el {
+  position: absolute;
+  width: 40vw;
+  height: 33.5vw;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 1.5vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 0.25s ease;
+}
+
+.text-el:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* единый transition для обоих классов */
+.text-el,
+.map-item.reveal,
+.text-el.reveal {
+  transition: background-color 250ms ease, opacity 400ms ease,
+    transform 400ms ease;
+}
+
+/* grab-to-pan cursors */
+#main-field-wrapper {
+  cursor: grab;
+}
+#main-field-wrapper.dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+/* когда удерживается пробел — явно показываем, что пэн доступен */
+#main-field-wrapper.grab-enabled {
+  cursor: grab;
+}
+
+/* внутри узлов оставляем их курсоры (если нужны) */
+.text-el,
+.pic-el {
+  cursor: auto;
+}
+
+/* Очень большие мониторы, iMac, 4K дисплеи */
+@media screen and (max-width: 1920px) {
+  /* large desktop */
+  #fix-cover-elements,
+  #pixi-wrapper,
+  #pixi-container-waves-blur,
+  #blending-explenation,
+  #inition-field,
+  #pixi-container-waves-blur,
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  body {
+    font-size: 14px;
+    line-height: 1.3;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+    position: absolute;
+  }
+  #quastions {
+    position: absolute;
+    right: 1dvw;
+    bottom: 1dvw;
+    z-index: 3001;
+  }
+}
+
+/* Средние ноутбуки / большие десктопы */
+@media screen and (max-width: 1440px) {
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 18px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+/* Планшеты в ландшафтной ориентации / маленькие ноутбуки */
+@media screen and (max-width: 1200px) {
+  /* small laptops */
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+/* Планшеты в портретной ориентации */
+@media screen and (max-width: 992px) {
+  /* tablets */
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+/* Крупные телефоны / маленькие планшеты */
+@media screen and (max-width: 768px) {
+  /* phablets, small tablets */
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+/* Средние телефоны */
+@media screen and (max-width: 600px) {
+  /* Base typography */
+
+  /* Links slightly smaller than paragraph text */
+  a,
+  span {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+
+  /* Text nodes: mobile layout */
+  .text-el {
+    width: 90vw;
+    height: 140vw;
+    padding: 3vw;
+    box-sizing: border-box; /* include padding in width/height */
+  }
+  .text-el .meta-top,
+  /* .text-el .meta-bottom {
+    font-size: 3.8vw;
+  } */
+  .text-el p {
+    /* paragraphs a bit larger */
+    font-size: 4.6vw;
+    line-height: 1.3;
+  }
+  /* Make BEXP paragraphs match text node paragraphs */
+  #BEXPtext-block p {
+    font-size: 4.6vw;
+    line-height: 1.3;
+    margin: 0 0 3.2vw 0;
+  }
+  #BEXPtext-block p:last-child {
+    margin-bottom: 0;
+  }
+
+  #BEXPtext-block {
+    width: 90dvw;
+  }
+
+  .edge-top {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 20dvh;
+    backdrop-filter: blur(var(--edge-blur-y));
+    -webkit-backdrop-filter: blur(var(--edge-blur-y));
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, var(--edge-alpha-y)) 0%,
+      rgba(0, 0, 0, var(--edge-alpha-y)) 50%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  }
+
+  /* Init overlay block centered with 5vw margins (90vw width) */
+  .init-item {
+    width: 90vw;
+    height: 140vw;
+    padding: 3vw;
+    left: 50vw;
+    top: 50vh;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+  }
+
+  #node-name {
+    width: auto;
+  }
+
+  #TBFcol2 {
+    width: auto;
+  }
+
+  #inition-field {
+    position: fixed;
+    inset: 0; /* avoids 100vw/100vh overflow on mobile */
+    width: auto;
+    height: auto;
+    overflow: hidden;
+    touch-action: none; /* prevent native panning under overlay */
+  }
+
+  /* Mobile: make top edge taller, gradient lower, stronger blur */
+  :root {
+    --edge-size-y: 18vw; /* was 10vw on desktop */
+    --edge-blur-y: 14px; /* stronger blur under the top edge */
+    --edge-alpha-y: 0.95; /* slightly denser gradient */
+  }
+
+  #quastions {
+    position: fixed;
+  }
+
+  /* ==== ТЕКСТОВЫЙ БЛОК ==== */
+  .text-block-fixed {
+    position: absolute;
+    top: 3vw;
+    left: 3vw;
+    display: flex;
+  }
+  #found-div {
+    position: absolute;
+    bottom: 3vw;
+    left: 3vw;
+    display: flex;
+  }
+
+  #found-span {
+    margin-left: 3vw;
+  }
+
+  #TBFcol1 {
+    margin-right: 3vw;
+    width: 50dvw;
+  }
+
+  /* Progressive viewport units: dvw/dvh with fallback above */
+  @supports (width: 1dvw) {
+    /* dvw/dvh variants for the top edge */
+    :root {
+      --edge-size-y: 18dvw;
+      --edge-blur-y: 14px; /* blur in px is fine */
+      --edge-alpha-y: 0.95;
+    }
+    /* Override CSS variables measured in vw */
+    :root {
+      --edge-size: 8dvw;
+      --edge-size-y: 10dvw;
+    }
+    html.low-perf {
+      --edge-size: 6dvw;
+      --edge-size-y: 8dvw;
+    }
+
+    /* Containers using viewport units */
+    #pixi-container-waves-blur {
+      height: 100dvh;
+      width: 100dvw;
+    }
+    #main-field-wrapper {
+      height: 100dvh;
+      width: 100dvw;
+    }
+    .pixi-wrapper,
+    #pixi-wrapper {
+      height: 100dvh;
+      width: 100dvw;
+    }
+
+    /* Overlay/explanation blocks */
+    #blending-explenation {
+      width: 100dvw;
+      height: 100dvh;
+      padding-left: 2dvw;
+    }
+    #gif {
+      height: 120dvw;
+    }
+    /* Match BEXP paragraphs to text nodes using dvw */
+    #BEXPtext-block p {
+      font-size: 4.6dvw;
+      line-height: 1.3;
+      margin: 0 0 3.2dvw 0;
+    }
+    #BEXPtext-block p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Fixed UI offsets */
+    .text-block-fixed {
+      top: 3dvw;
+      left: 3dvw;
+    }
+    #found-div {
+      bottom: 3dvw;
+      left: 3dvw;
+    }
+    #found-span {
+      margin-left: 3dvw;
+    }
+
+    #quastions {
+      right: 3dvw;
+      bottom: 3dvw;
+      z-index: 3001;
+      position: absolute;
+    }
+
+    /* prevent offscreen children causing page scroll */
+    #pixi-wrapper {
+      overflow: hidden;
+    }
+
+    .text-el {
+      width: 92dvw;
+      height: 160dvw;
+      padding: 3dvw;
+    }
+    .init-item {
+      width: 92dvw;
+      height: 160dvw;
+      padding: 3dvw;
+      left: 50dvw;
+      top: 50dvh;
+      transform: translate(-50%, -50%);
+    }
+    #init-span {
+      top: 3dvw;
+      right: 3dvw;
+    }
+    #inition-field {
+      min-height: 100dvh;
+      min-width: 100dvw;
+    }
+    #main-field-wrapper {
+      height: 100dvh;
+    }
+  }
+
+  /* Picture nodes: keep desktop sizing (no extra mobile scale) */
+  .pic-el {
+    transform-origin: center center;
+  }
+
+  /* Touch-first tweaks */
+  #main-field-wrapper {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fixed UI bits */
+  #init-span {
+    /* keep visible and tappable */
+    top: 3vw;
+    right: 3vw;
+  }
+}
+
+/* Маленькие телефоны (iPhone SE и т.п.) */
+@media screen and (max-width: 480px) {
+  /* Fine-tune for very small screens */
+  html,
+  body {
+    font-size: 12px;
+    width: 100dvw;
+    height: 100dvh;
+  }
+  a,
+  span {
+    font-size: 12px;
+  }
+  p {
+    font-size: 14px;
+  }
+
+  .text-el .meta-top,
+  .text-el .meta-bottom {
+    font-size: 4vw;
+  }
+  .text-el p {
+    font-size: 4.9vw;
+  }
+  #BEXPtext-block p {
+    font-size: 4.9vw;
+    margin: 0 0 3.8vw 0;
+  }
+  #BEXPtext-block p:last-child {
+    margin-bottom: 0;
+  }
+  /* keep desktop sizing on very small phones as well */
+  .pic-el {
+    transform-origin: center center;
+  }
+}
+
+/* Очень маленькие устройства */
+@media screen and (max-width: 360px) {
+  /* extra small phones */
+}
