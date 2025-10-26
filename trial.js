@@ -30,7 +30,7 @@ window.onload = function () {
   // === Загрузка видео в Pixi ===
   // === Загрузка видео в Pixi (кроссбраузер: MP4 для Safari + WebM) ===
 const mp4URL = 'https://dunchekk.github.io/stud-2_01-struct-lending/imgs/wod2.mp4';
-const webmURL = 'https://dunchekk.github.io/stud-2_01-struct-lending/imgs/wod2.webm';
+const webmURL = 'https://dunchekk.github.io/stud-2_01-struct-lending/imgs/vod2_safari.mp4';
 
 const videoEl = document.createElement('video');
 videoEl.crossOrigin = 'anonymous';
@@ -1696,4 +1696,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
 
