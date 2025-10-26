@@ -28,22 +28,38 @@ window.onload = function () {
   //--------------------------------------- pixi ----------------------------------> video upl
 
   // === Загрузка видео в Pixi ===
-  const videoSprite = PIXI.Sprite.from(
-    "https://dunchekk.github.io/stud-2_01-struct-lending/imgs/wod2.webm"
-  );
+  // === Загрузка видео в Pixi (кроссбраузер: MP4 для Safari + WebM) ===
+const mp4URL = 'https://dunchekk.github.io/stud-2_01-struct-lending/imgs/wod2.mp4';
+const webmURL = 'https://dunchekk.github.io/stud-2_01-struct-lending/imgs/wod2.webm';
 
-  // Получаем HTMLVideoElement, который Pixi создал под капотом
-  const videoEl = videoSprite.texture.baseTexture.resource.source;
+const videoEl = document.createElement('video');
+videoEl.crossOrigin = 'anonymous';
+videoEl.muted = true;
+videoEl.loop = true;
+videoEl.autoplay = true;
+videoEl.playsInline = true;
+videoEl.setAttribute('playsinline', '');
+videoEl.preload = 'auto';
 
-  // Настройки видео
-  videoEl.loop = true;
-  videoEl.muted = true;
-  videoEl.playsInline = true; // важно для iOS / мобильных, чтобы не открывалось отдельным плеером
+const srcMp4 = document.createElement('source');
+srcMp4.src = mp4URL;
+srcMp4.type = 'video/mp4';
 
-  // Запуск видео только после того, как поток реально готов
-  videoEl.addEventListener("loadeddata", () => {
-    videoEl.play().catch(() => {}); // безопасный запуск, даже если Chrome блокирует autoplay
-  });
+const srcWebm = document.createElement('source');
+srcWebm.src = webmURL;
+srcWebm.type = 'video/webm';
+
+videoEl.append(srcMp4, srcWebm);
+
+// Безопасный автозапуск + запасной запуск по пользовательскому жесту (для iOS/Safari)
+const tryPlay = () => videoEl.play().catch(() => {});
+videoEl.addEventListener('canplay', tryPlay, { once: true });
+window.addEventListener('pointerdown', tryPlay, { once: true });
+
+// Создаём Pixi-текстуру и спрайт из <video>
+const videoTexture = PIXI.Texture.from(videoEl);
+const videoSprite = new PIXI.Sprite(videoTexture);
+
 
   // Fit video to cover while preserving aspect ratio; add overscan for parallax
   const OVERSCAN = 1.4; // was ~1.8 fixed stretch; use slightly gentler overscan
@@ -1680,3 +1696,4 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
