@@ -1032,6 +1032,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const questSpan = document.getElementById("quastions");
   const layer = document.getElementById("blending-explenation");
   const containerInv = document.querySelector("html");
+  const initBtn = document.getElementById("init-span");
   if (!questSpan || !layer) return;
 
   if (window.devicePixelRatio > 2 || navigator.hardwareConcurrency <= 4) {
@@ -1071,6 +1072,12 @@ document.addEventListener("DOMContentLoaded", () => {
         containerInv.style.filter = "invert(1)";
 
         layer.style.opacity = "1";
+        // При открытии ??? гасим только текст кнопки init (opacity)
+        if (initBtn) {
+          if (!initBtn.style.transition)
+            initBtn.style.transition = "opacity 300ms ease";
+          initBtn.style.opacity = "0";
+        }
         isOpen = true;
       },
       { once: true }
@@ -1112,6 +1119,12 @@ document.addEventListener("DOMContentLoaded", () => {
           layer.classList.add("blend-hidden"); // скрыть полностью
           layer.style.opacity = "0";
           containerInv.style.filter = "";
+          // При закрытии ??? возвращаем opacity кнопки init
+          if (initBtn) {
+            if (!initBtn.style.transition)
+              initBtn.style.transition = "opacity 300ms ease";
+            initBtn.style.opacity = "1";
+          }
           isOpen = false;
         },
         { once: true }
@@ -1608,4 +1621,62 @@ document.addEventListener("DOMContentLoaded", function () {
       start();
     }
   });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const html = document.documentElement;
+  const overlay = document.getElementById("inition-field");
+  const openBtn = document.getElementById("init-span");
+  const questions = document.getElementById("quastions");
+
+  // Гладкая анимация смены фильтра
+  if (!html.style.transition) html.style.transition = "filter 500ms ease";
+
+  const setInvert = (value) => {
+    html.style.filter = `invert(${value})`;
+  };
+
+  const isOverlayVisible = () => {
+    if (!overlay) return false;
+    const style = window.getComputedStyle(overlay);
+    return style.display !== "none" && !overlay.classList.contains("closing");
+  };
+
+  const syncUI = () => {
+    const vis = isOverlayVisible();
+    setInvert(vis ? 1 : 0);
+    if (questions) questions.style.display = vis ? "none" : "";
+  };
+
+  // Старт: синхронизуем инверсию и видимость ??? с состоянием init-field
+  syncUI();
+
+  // Клик по крестику внутри init-field (делегирование — крестик создаётся динамически)
+  if (overlay) {
+    overlay.addEventListener("click", (e) => {
+      if (e.target.closest(".close-init")) {
+        setInvert(0); // плавный переход к нормальному виду
+        // Появление ??? произойдёт по факту закрытия слоя (наблюдатель ниже)
+      }
+    });
+  }
+
+  // Кнопка повторного открытия init (инициирует обратную инверсию)
+  if (openBtn) {
+    openBtn.addEventListener("click", () => {
+      setInvert(1);
+      if (questions) questions.style.display = "none"; // сразу скрываем ??? при открытии
+    });
+  }
+
+  // Слежение за состоянием оверлея — синхронизируем фильтр, если его скрыли/открыли кодом
+  if (overlay) {
+    const mo = new MutationObserver(() => {
+      syncUI();
+    });
+    mo.observe(overlay, {
+      attributes: true,
+      attributeFilter: ["class", "style"],
+    });
+  }
 });
