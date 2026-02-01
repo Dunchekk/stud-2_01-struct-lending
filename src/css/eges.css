@@ -1,0 +1,83 @@
+:root {
+  /* базовые переменные для краёв */
+  --edge-size: 8vw;
+  --edge-alpha: 0.6;
+  --edge-blur: 6px;
+
+  /* индивидуальные параметры для верх/низ */
+  --edge-size-y: 10vw;
+  --edge-alpha-y: 0.9;
+  --edge-blur-y: 12px;
+}
+
+/* ==== БАЗА ДЛЯ ВСЕХ КРАЁВ ==== */
+.edge {
+  position: absolute;
+  backdrop-filter: blur(var(--edge-blur));
+  -webkit-backdrop-filter: blur(var(--edge-blur));
+}
+
+/* ==== ВЕРХ ==== */
+.edge-top {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--edge-size-y);
+  backdrop-filter: blur(var(--edge-blur-y));
+  -webkit-backdrop-filter: blur(var(--edge-blur-y));
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--edge-alpha-y)) 0%,
+    rgba(0, 0, 0, var(--edge-alpha-y)) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+
+/* ==== НИЗ ==== */
+.edge-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--edge-size-y) * 0.6);
+  backdrop-filter: blur(var(--edge-blur-y));
+  -webkit-backdrop-filter: blur(var(--edge-blur-y));
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, calc(var(--edge-alpha-y) * 0.5)) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+}
+
+/* ==== ПРАВО ==== */
+.edge-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--edge-size);
+  background: linear-gradient(
+    to left,
+    rgba(0, 0, 0, var(--edge-alpha)) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to left, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 100%);
+}
+
+/* ==== ЛЕВО ==== */
+.edge-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--edge-size);
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, var(--edge-alpha)) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(to right, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, transparent 100%);
+}

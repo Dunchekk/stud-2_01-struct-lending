@@ -1,0 +1,9 @@
+@font-face {
+  font-family: "Spectral";
+  src: url("../fonts/Spectral-Regular.ttf");
+}
+
+* {
+  font-family: "Spectral";
+  color: white;
+}

@@ -1,0 +1,322 @@
+@media screen and (max-width: 1920px) {
+  #fix-cover-elements,
+  #main-wrapper,
+  #pixi-container-waves-blur,
+  #blending-explenation,
+  #inition-field,
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  body {
+    font-size: 14px;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+    position: absolute;
+  }
+  #questions {
+    position: absolute;
+    right: 1dvw;
+    bottom: 1dvw;
+    z-index: 3001;
+  }
+}
+
+@media screen and (max-width: 1440px) {
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 18px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  * {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+  a,
+  span {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  a,
+  span {
+    font-size: 14px;
+  }
+  p {
+    font-size: 16px;
+  }
+
+  .text-el {
+    width: 90vw;
+    height: 140vw;
+    padding: 3vw;
+    box-sizing: border-box; /* include padding in width/height */
+  }
+  .text-el .meta-top,
+  .text-el p {
+    font-size: 4.6vw;
+  }
+  #BEXPtext-block p {
+    font-size: 4.6vw;
+    margin: 0 0 3.2vw 0;
+  }
+  #BEXPtext-block p:last-child {
+    margin-bottom: 0;
+  }
+
+  #BEXPtext-block {
+    width: 90dvw;
+  }
+
+  .edge-top {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 20dvh;
+    backdrop-filter: blur(var(--edge-blur-y));
+    -webkit-backdrop-filter: blur(var(--edge-blur-y));
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, var(--edge-alpha-y)) 0%,
+      rgba(0, 0, 0, var(--edge-alpha-y)) 50%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  }
+
+  .init-item {
+    width: 90vw;
+    height: 140vw;
+    padding: 3vw;
+    left: 50vw;
+    top: 50vh;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+  }
+
+  #node-name {
+    width: auto;
+  }
+
+  #TBFcol2 {
+    width: auto;
+  }
+
+  #inition-field {
+    position: fixed;
+    inset: 0; /* avoids 100vw/100vh overflow on mobile */
+    width: auto;
+    height: auto;
+    overflow: hidden;
+    touch-action: none; /* prevent native panning under overlay */
+  }
+
+  :root {
+    --edge-size-y: 18vw; /* was 10vw on desktop */
+    --edge-blur-y: 14px; /* stronger blur under the top edge */
+    --edge-alpha-y: 0.95; /* slightly denser gradient */
+  }
+
+  #questions {
+    position: fixed;
+  }
+
+  .text-block-fixed {
+    position: absolute;
+    top: 3vw;
+    left: 3vw;
+    display: flex;
+  }
+  #found-div {
+    position: absolute;
+    bottom: 3vw;
+    left: 3vw;
+    display: flex;
+  }
+
+  #found-span {
+    margin-left: 3vw;
+  }
+
+  #TBFcol1 {
+    margin-right: 3vw;
+    width: 50dvw;
+  }
+
+  @supports (width: 1dvw) {
+    :root {
+      --edge-size-y: 18dvw;
+      --edge-blur-y: 14px; /* blur in px is fine */
+      --edge-alpha-y: 0.95;
+    }
+    :root {
+      --edge-size: 8dvw;
+      --edge-size-y: 10dvw;
+    }
+    html.low-perf {
+      --edge-size: 6dvw;
+      --edge-size-y: 8dvw;
+    }
+
+    #pixi-container-waves-blur {
+      height: 100dvh;
+      width: 100dvw;
+    }
+    #main-field-wrapper {
+      height: 100dvh;
+      width: 100dvw;
+    }
+    #main-wrapper {
+      height: 100dvh;
+      width: 100dvw;
+    }
+
+    #blending-explenation {
+      width: 100dvw;
+      height: 100dvh;
+      padding-left: 2dvw;
+    }
+    #gif {
+      height: 120dvw;
+    }
+    #BEXPtext-block p {
+      font-size: 4.6dvw;
+      margin: 0 0 3.2dvw 0;
+    }
+    #BEXPtext-block p:last-child {
+      margin-bottom: 0;
+    }
+
+    .text-block-fixed {
+      top: 3dvw;
+      left: 3dvw;
+    }
+    #found-div {
+      bottom: 3dvw;
+      left: 3dvw;
+    }
+    #found-span {
+      margin-left: 3dvw;
+    }
+
+    #questions {
+      right: 3dvw;
+      bottom: 3dvw;
+      z-index: 3001;
+      position: absolute;
+    }
+
+    .text-el {
+      width: 92dvw;
+      height: 160dvw;
+      padding: 3dvw;
+    }
+    .init-item {
+      width: 92dvw;
+      height: 160dvw;
+      padding: 3dvw;
+      left: 50dvw;
+      top: 50dvh;
+      transform: translate(-50%, -50%);
+    }
+    #init-span {
+      top: 3dvw;
+      right: 3dvw;
+    }
+    #inition-field {
+      min-height: 100dvh;
+      min-width: 100dvw;
+    }
+    #main-field-wrapper {
+      height: 100dvh;
+    }
+  }
+
+  .pic-el {
+    transform-origin: center center;
+  }
+
+  #main-field-wrapper {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #init-span {
+    top: 3vw;
+    right: 3vw;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  html,
+  body {
+    font-size: 12px;
+    width: 100dvw;
+    height: 100dvh;
+  }
+  a,
+  span {
+    font-size: 12px;
+  }
+  p {
+    font-size: 14px;
+  }
+
+  .text-el .meta-top,
+  .text-el .meta-bottom {
+    font-size: 4vw;
+  }
+  .text-el p {
+    font-size: 4.9vw;
+  }
+  #BEXPtext-block p {
+    font-size: 4.9vw;
+    margin: 0 0 3.8vw 0;
+  }
+  #BEXPtext-block p:last-child {
+    margin-bottom: 0;
+  }
+  .pic-el {
+    transform-origin: center center;
+  }
+}

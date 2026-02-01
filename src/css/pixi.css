@@ -1,0 +1,25 @@
+.pixi-wrapper {
+  position: relative;
+  top: 0;
+  left: 0;
+}
+
+.pixi-anim-in {
+  animation: htmlInverseIn 1s ease forwards;
+}
+.pixi-anim-out {
+  animation: htmlInverseOut 1s ease forwards;
+}
+.pixi-hidden {
+  filter: invert(0);
+}
+
+.pixi-open {
+  filter: invert(1);
+}
+
+#pixi-container-waves-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
+}

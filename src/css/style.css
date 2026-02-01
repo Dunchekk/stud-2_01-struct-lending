@@ -1,0 +1,57 @@
+/* Скрыть вертикальный и горизонтальный скроллбары во всех браузерах */
+html {
+  will-change: contents;
+  transition: filter 500ms ease;
+}
+
+/* базовые переменные уже заданы в :root */
+html.low-perf {
+  --edge-blur: 4px;
+  --edge-size: 6vw;
+  --edge-blur-y: 8px;
+  --edge-size-y: 8vw;
+  --edge-alpha: 0.3;
+  --edge-alpha-y: 0.45;
+}
+
+body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  overflow: -moz-scrollbars-none;
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+}
+body::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+a {
+  text-decoration: none;
+  color: white;
+  font-size: 16px;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+#main-field-wrapper {
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: scroll;
+  cursor: grab;
+}
+
+#main-field-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+#main-field-wrapper.dragging {
+  cursor: grabbing;
+  user-select: none;
+}
