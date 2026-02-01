@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  // GitHub Pages / subpath-friendly build (prevents "/assets/..." absolute URLs)
+  base: "./",
   root: ".", // корень проекта (по умолчанию)
   publicDir: "public", // статические файлы, копируются как есть
   build: {
