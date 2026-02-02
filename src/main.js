@@ -11,9 +11,9 @@ import { initField } from "./components/initMainField";
 import { activeDragging } from "./components/activeDragging";
 import { activeNodesObserver } from "./components/observer";
 import { activeQuestionField } from "./components/questionField";
-import { activeInitionField } from "./components/initionField";
+import { activeInitionField } from "./components/introField";
 import { imgActionControl } from "./components/imgControl";
-import { activeInitionUI } from "./components/initionUI";
+import { activeInitionUI } from "./components/initUI";
 import { hideLoadingScreenWhenReady } from "./components/loading";
 
 window.addEventListener("load", initPixi);
